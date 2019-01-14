@@ -1,7 +1,9 @@
+import re
 import sys
 
-from fontTools.voltLib.parser import Parser
+from fontTools.feaLib.lexer import Lexer as FeaLexer
 from fontTools.voltLib.ast import LookupDefinition
+from fontTools.voltLib.parser import Parser
 
 class FeaWriter():
     def __init__(self):
@@ -9,11 +11,16 @@ class FeaWriter():
         self._lookups = []
         self._features = []
 
-    def _sanitizeName(self, name, prefix=""):
-        name = name.replace(" ", "_")
-        if prefix:
-            name = prefix + "_" + name
-        return name
+    @staticmethod
+    def _name(name):
+        # FIXME: this is using "private" FeaLexer constants.
+        if name[0] not in FeaLexer.CHAR_NAME_START_:
+            name = "_" + name
+        return "".join(c for c in name if c in FeaLexer.CHAR_NAME_CONTINUATION_ or "_")
+
+    @staticmethod
+    def _className(name):
+        return "@" + re.sub(r'[^A-Za-z_0-9.]', "_", name)
 
     def write(self, path):
         items = []
@@ -30,7 +37,7 @@ class FeaWriter():
             feafile.write("\n")
 
     def WriteGroupDefinition(self, group):
-        name = self._sanitizeName(group.name, "@c")
+        name = self._className(group.name)
         glyphs = group.glyphSet()
         self._classes.append("%s = [%s];" % (name, " ".join(glyphs)))
 
