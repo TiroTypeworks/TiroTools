@@ -1,6 +1,9 @@
 import re
 import sys
 
+from tempfile import NamedTemporaryFile
+
+from fontTools.ttLib import TTFont
 from fontTools.feaLib.lexer import Lexer as FeaLexer
 from fontTools.voltLib.ast import LookupDefinition
 from fontTools.voltLib.parser import Parser
@@ -42,7 +45,15 @@ class FeaWriter():
         self._classes.append("%s = [%s];" % (name, " ".join(glyphs)))
 
 def main(filename, outfilename):
-    parser = Parser(filename)
+    try:
+        font = TTFont(filename)
+        if "TSIV" in font:
+            with NamedTemporaryFile(delete=False) as temp:
+                temp.write(font["TSIV"].data)
+                temp.flush()
+                parser = Parser(temp.name)
+    except:
+        parser = Parser(filename)
     writer = FeaWriter()
     res = parser.parse()
     reported = []
