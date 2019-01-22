@@ -19,6 +19,7 @@ class FeaWriter:
 
         self._doc = FeaAst.FeatureFile()
         self._glyph_classes = {}
+        self._features = {}
 
     @staticmethod
     def _name(name):
@@ -32,6 +33,22 @@ class FeaWriter:
         return re.sub(r'[^A-Za-z_0-9.]', "_", name)
 
     def write(self, path):
+        statements = self._doc.statements
+
+        for ftag, scripts in self._features.items():
+            feature = FeaAst.FeatureBlock(ftag)
+            for stag, langs in scripts.items():
+                script = FeaAst.ScriptStatement(stag)
+                feature.statements.append(script)
+                for ltag, lookups in langs.items():
+                    lang = FeaAst.LanguageStatement(ltag)
+                    feature.statements.append(lang)
+                    for name in lookups:
+                        lookup = FeaAst.LookupBlock(name) # FIXME
+                        lookupref = FeaAst.LookupReferenceStatement(lookup)
+                        feature.statements.append(lookupref)
+            statements.append(feature)
+
         gdef = FeaAst.TableBlock("GDEF")
         gdef.statements.append(
             FeaAst.GlyphClassDefStatement(
@@ -40,7 +57,7 @@ class FeaWriter:
                 self._glyph_classes.get("LIGATURE", None),
                 self._glyph_classes.get("COMPONENT", None)))
 
-        self._doc.statements.append(gdef)
+        statements.append(gdef)
 
         with open(path, "w") as feafile:
             feafile.write(self._doc.asFea())
@@ -59,6 +76,16 @@ class FeaWriter:
         if glyph.type not in self._glyph_classes:
             self._glyph_classes[glyph.type] = FeaAst.GlyphClass()
         self._glyph_classes[glyph.type].glyphs.append(glyph.name)
+
+    def ScriptDefinition(self, script):
+        for lang in script.langs:
+            for feature in lang.features:
+                if feature.tag not in self._features:
+                    self._features[feature.tag] = {}
+                if script.tag not in self._features[feature.tag]:
+                    self._features[feature.tag][script.tag] = {}
+                assert lang.tag not in self._features[feature.tag][script.tag]
+                self._features[feature.tag][script.tag][lang.tag] = feature.lookups
 
 def main(filename, outfilename):
     font = None
