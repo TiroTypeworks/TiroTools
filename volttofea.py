@@ -19,7 +19,9 @@ class FeaWriter:
 
         self._doc = FeaAst.FeatureFile()
         self._glyph_classes = {}
+        self._groups = {}
         self._features = {}
+        self._lookups = {}
 
     @staticmethod
     def _name(name):
@@ -44,7 +46,7 @@ class FeaWriter:
                     lang = FeaAst.LanguageStatement(ltag)
                     feature.statements.append(lang)
                     for name in lookups:
-                        lookup = FeaAst.LookupBlock(name) # FIXME
+                        lookup = self._lookups[name]
                         lookupref = FeaAst.LookupReferenceStatement(lookup)
                         feature.statements.append(lookupref)
             statements.append(feature)
@@ -65,7 +67,9 @@ class FeaWriter:
     def GroupDefinition(self, group):
         name = self._className(group.name)
         glyphs = FeaAst.GlyphClass(group.glyphSet())
-        self._doc.statements.append(FeaAst.GlyphClassDefinition(name, glyphs))
+        glyphclass = FeaAst.GlyphClassDefinition(name, glyphs)
+        self._groups[group.name] = glyphclass
+        self._doc.statements.append(glyphclass)
 
     def GlyphDefinition(self, glyph):
         try:
@@ -86,6 +90,36 @@ class FeaWriter:
                     self._features[feature.tag][script.tag] = {}
                 assert lang.tag not in self._features[feature.tag][script.tag]
                 self._features[feature.tag][script.tag][lang.tag] = feature.lookups
+
+    def LookupDefinition(self, lookup):
+        mark_attachement = None
+        mark_filtering = None
+
+        flags = 0
+        if lookup.direction == "RTL":
+            flags |= 1
+        if not lookup.process_base:
+            flags |= 2
+        # FIXME: Does VOLT support this?
+        #if not lookup.process_ligatures:
+        #    flags |= 4
+        if not lookup.process_marks:
+            flags |= 8
+        elif isinstance(lookup.process_marks, str):
+            name = lookup.process_marks
+            mark_attachement = FeaAst.GlyphClassName(self._groups[name])
+        elif lookup.mark_glyph_set is not None:
+            name = lookup.mark_glyph_set
+            mark_filtering = FeaAst.GlyphClassName(self._groups[name])
+
+        fea_lookup = FeaAst.LookupBlock(lookup.name)
+        if flags or mark_attachement is not None or mark_filtering is not None:
+            lookupflags = FeaAst.LookupFlagStatement(flags, mark_attachement,
+                                                     mark_filtering)
+            fea_lookup.statements.append(lookupflags)
+
+        self._lookups[lookup.name] = fea_lookup
+        self._doc.statements.append(fea_lookup)
 
 def main(filename, outfilename):
     font = None
