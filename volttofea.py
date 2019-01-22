@@ -20,10 +20,6 @@ class FeaWriter:
         self._doc = FeaAst.FeatureFile()
         self._glyph_classes = {}
 
-        self._classes = []
-        self._lookups = []
-        self._features = []
-
     @staticmethod
     def _name(name):
         # FIXME: this is using "private" FeaLexer constants.
@@ -36,12 +32,6 @@ class FeaWriter:
         return re.sub(r'[^A-Za-z_0-9.]', "_", name)
 
     def write(self, path):
-        items = []
-        if self._lookups:
-            items.append("\n\n".join(self._lookups))
-        if self._features:
-            items.append("\n\n".join(self._features))
-
         gdef = FeaAst.TableBlock("GDEF")
         gdef.statements.append(
             FeaAst.GlyphClassDefStatement(
@@ -50,15 +40,10 @@ class FeaWriter:
                 self._glyph_classes.get("LIGATURE", None),
                 self._glyph_classes.get("COMPONENT", None)))
 
-        doc = self._doc
-        doc.statements.append(gdef)
-        items.append(doc.asFea())
-
-        fea = "\n\n".join(items)
+        self._doc.statements.append(gdef)
 
         with open(path, "w") as feafile:
-            feafile.write(fea)
-            feafile.write("\n")
+            feafile.write(self._doc.asFea())
 
     def WriteGroupDefinition(self, group):
         name = self._className(group.name)
