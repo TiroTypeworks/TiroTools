@@ -4,12 +4,22 @@ import sys
 from tempfile import NamedTemporaryFile
 
 from fontTools.ttLib import TTFont
+from fontTools.feaLib import ast as FeaAst
 from fontTools.feaLib.lexer import Lexer as FeaLexer
 from fontTools.voltLib.ast import LookupDefinition
 from fontTools.voltLib.parser import Parser
 
-class FeaWriter():
-    def __init__(self):
+class FeaWriter:
+    def __init__(self, font):
+        self._font = font
+        self._glyph_map = {}
+        self._glyph_order = None
+        if font is not None:
+            self._glyph_order = font.getGlyphOrder()
+
+        self._doc = FeaAst.FeatureFile()
+        self._glyph_classes = {}
+
         self._classes = []
         self._lookups = []
         self._features = []
@@ -33,7 +43,20 @@ class FeaWriter():
             items.append("\n\n".join(self._lookups))
         if self._features:
             items.append("\n\n".join(self._features))
-        fea = "\n".join(items)
+
+        gdef = FeaAst.TableBlock("GDEF")
+        gdef.statements.append(
+            FeaAst.GlyphClassDefStatement(
+                self._glyph_classes.get("BASE", None),
+                self._glyph_classes.get("MARK", None),
+                self._glyph_classes.get("LIGATURE", None),
+                self._glyph_classes.get("COMPONENT", None)))
+
+        doc = self._doc
+        doc.statements.append(gdef)
+        items.append(doc.asFea())
+
+        fea = "\n\n".join(items)
 
         with open(path, "w") as feafile:
             feafile.write(fea)
@@ -44,7 +67,18 @@ class FeaWriter():
         glyphs = group.glyphSet()
         self._classes.append("%s = [%s];" % (name, " ".join(glyphs)))
 
+    def WriteGlyphDefinition(self, glyph):
+        try:
+            self._glyph_map[glyph.name] = self._glyph_order[glyph.id]
+        except TypeError:
+            self._glyph_map[glyph.name] = glyph.name
+
+        if glyph.type not in self._glyph_classes:
+            self._glyph_classes[glyph.type] = FeaAst.GlyphClass()
+        self._glyph_classes[glyph.type].glyphs.append(glyph.name)
+
 def main(filename, outfilename):
+    font = None
     try:
         font = TTFont(filename)
         if "TSIV" in font:
@@ -54,7 +88,7 @@ def main(filename, outfilename):
                 parser = Parser(temp.name)
     except:
         parser = Parser(filename)
-    writer = FeaWriter()
+    writer = FeaWriter(font)
     res = parser.parse()
     reported = []
 
