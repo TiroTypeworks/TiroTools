@@ -33,12 +33,10 @@ class FeaWriter:
 
     @staticmethod
     def _className(name):
-        return "@" + re.sub(r'[^A-Za-z_0-9.]', "_", name)
+        return re.sub(r'[^A-Za-z_0-9.]', "_", name)
 
     def write(self, path):
         items = []
-        if self._classes:
-            items.append("\n".join(self._classes))
         if self._lookups:
             items.append("\n\n".join(self._lookups))
         if self._features:
@@ -64,8 +62,8 @@ class FeaWriter:
 
     def WriteGroupDefinition(self, group):
         name = self._className(group.name)
-        glyphs = group.glyphSet()
-        self._classes.append("%s = [%s];" % (name, " ".join(glyphs)))
+        glyphs = FeaAst.GlyphClass(group.glyphSet())
+        self._doc.statements.append(FeaAst.GlyphClassDefinition(name, glyphs))
 
     def WriteGlyphDefinition(self, glyph):
         try:
