@@ -45,12 +45,12 @@ class FeaWriter:
         with open(path, "w") as feafile:
             feafile.write(self._doc.asFea())
 
-    def WriteGroupDefinition(self, group):
+    def GroupDefinition(self, group):
         name = self._className(group.name)
         glyphs = FeaAst.GlyphClass(group.glyphSet())
         self._doc.statements.append(FeaAst.GlyphClassDefinition(name, glyphs))
 
-    def WriteGlyphDefinition(self, glyph):
+    def GlyphDefinition(self, glyph):
         try:
             self._glyph_map[glyph.name] = self._glyph_order[glyph.id]
         except TypeError:
@@ -77,9 +77,8 @@ def main(filename, outfilename):
 
     for s in res.statements:
         name = type(s).__name__
-        methodname = "Write" + name
-        if hasattr(writer, methodname):
-            getattr(writer, methodname)(s)
+        if hasattr(writer, name):
+            getattr(writer, name)(s)
         elif not name in reported:
             print("Can’t handle: %s" % name)
             reported.append(name)
