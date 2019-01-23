@@ -5,11 +5,16 @@ from tempfile import NamedTemporaryFile
 
 from fontTools.ttLib import TTFont
 from fontTools.feaLib import ast as FeaAst
-from fontTools.feaLib.lexer import Lexer as FeaLexer
 from fontTools.voltLib import ast
 from fontTools.voltLib.parser import Parser
 
+
+
 class FeaWriter:
+    _NAME_START_RE = re.compile(r"[A-Za-z_+*:.\^~!\\]")
+    _NOT_NAME_RE = re.compile(r"[^A-Za-z0-9_.+*:\^~!/-]")
+    _NOT_CLASS_NAME_RE = re.compile(r"[^A-Za-z_0-9.]")
+
     def __init__(self, font):
         self._font = font
         self._glyph_map = {}
@@ -23,16 +28,14 @@ class FeaWriter:
         self._features = {}
         self._lookups = {}
 
-    @staticmethod
-    def _name(name):
-        # FIXME: this is using "private" FeaLexer constants.
-        if name[0] not in FeaLexer.CHAR_NAME_START_:
+    def _name(self, name):
+        if self._NAME_START_RE.match(name[0]) is None:
             name = "_" + name
-        return "".join(c for c in name if c in FeaLexer.CHAR_NAME_CONTINUATION_ or "_")
+        out = self._NOT_NAME_RE.sub("_", name)
+        return out
 
-    @staticmethod
-    def _className(name):
-        return re.sub(r'[^A-Za-z_0-9.]', "_", name)
+    def _className(self, name):
+        return self._NOT_CLASS_NAME_RE.sub("_", name)
 
     def write(self, path):
         statements = self._doc.statements
@@ -111,7 +114,7 @@ class FeaWriter:
             name = lookup.mark_glyph_set
             mark_filtering = FeaAst.GlyphClassName(self._groups[name])
 
-        fea_lookup = FeaAst.LookupBlock(lookup.name)
+        fea_lookup = FeaAst.LookupBlock(self._name(lookup.name))
         if flags or mark_attachement is not None or mark_filtering is not None:
             lookupflags = FeaAst.LookupFlagStatement(flags, mark_attachement,
                                                      mark_filtering)
