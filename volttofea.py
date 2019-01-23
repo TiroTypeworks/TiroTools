@@ -18,7 +18,7 @@ class FeaWriter:
             self._glyph_order = font.getGlyphOrder()
 
         self._doc = FeaAst.FeatureFile()
-        self._glyph_classes = {}
+        self._gdef = {}
         self._groups = {}
         self._features = {}
         self._lookups = {}
@@ -53,11 +53,10 @@ class FeaWriter:
 
         gdef = FeaAst.TableBlock("GDEF")
         gdef.statements.append(
-            FeaAst.GlyphClassDefStatement(
-                self._glyph_classes.get("BASE", None),
-                self._glyph_classes.get("MARK", None),
-                self._glyph_classes.get("LIGATURE", None),
-                self._glyph_classes.get("COMPONENT", None)))
+            FeaAst.GlyphClassDefStatement(self._gdef.get("BASE"),
+                                          self._gdef.get("MARK"),
+                                          self._gdef.get("LIGATURE"),
+                                          self._gdef.get("COMPONENT")))
 
         statements.append(gdef)
 
@@ -77,9 +76,9 @@ class FeaWriter:
         except TypeError:
             self._glyph_map[glyph.name] = glyph.name
 
-        if glyph.type not in self._glyph_classes:
-            self._glyph_classes[glyph.type] = FeaAst.GlyphClass()
-        self._glyph_classes[glyph.type].glyphs.append(glyph.name)
+        if glyph.type not in self._gdef:
+            self._gdef[glyph.type] = FeaAst.GlyphClass()
+        self._gdef[glyph.type].glyphs.append(glyph.name)
 
     def ScriptDefinition(self, script):
         for lang in script.langs:
