@@ -6,7 +6,7 @@ from tempfile import NamedTemporaryFile
 from fontTools.ttLib import TTFont
 from fontTools.feaLib import ast as FeaAst
 from fontTools.feaLib.lexer import Lexer as FeaLexer
-from fontTools.voltLib.ast import LookupDefinition
+from fontTools.voltLib import ast
 from fontTools.voltLib.parser import Parser
 
 class FeaWriter:
@@ -118,7 +118,33 @@ class FeaWriter:
                                                      mark_filtering)
             fea_lookup.statements.append(lookupflags)
 
+        if lookup.sub is not None:
+            prefix = []
+            suffix = []
+            if lookup.context:
+                context = lookup.context[0]
+                if context.left:
+                    left = context.left[0] # FIXME
+                    prefix = [FeaAst.GlyphClass([FeaAst.GlyphName(g) for g in left.glyphSet()])]
+                if context.right:
+                    right = context.right[0] # FIXME
+                    suffix = [FeaAst.GlyphClass([FeaAst.GlyphName(g) for g in right.glyphSet()])]
+
+            if isinstance(lookup.sub, ast.SubstitutionLigatureDefinition):
+                for key, val in lookup.sub.mapping.items():
+                    # FIXME
+                    glyphs = [FeaAst.GlyphName(g) for g in key.glyphSet()]
+                    replacement = FeaAst.GlyphName(val.glyphSet()[0])
+                    subst = FeaAst.LigatureSubstStatement(prefix, glyphs,
+                                suffix, replacement, False)
+                    fea_lookup.statements.append(subst)
+
+        if lookup.pos is not None:
+            pass
+
         self._lookups[lookup.name] = fea_lookup
+        if lookup.comments is not None:
+            self._doc.statements.append(FeaAst.Comment(lookup.comments))
         self._doc.statements.append(fea_lookup)
 
 def main(filename, outfilename):
