@@ -4,10 +4,9 @@ import sys
 from tempfile import NamedTemporaryFile
 
 from fontTools.ttLib import TTFont
-from fontTools.feaLib import ast as FeaAst
-from fontTools.voltLib import ast
-from fontTools.voltLib.parser import Parser
-
+from fontTools.feaLib import ast
+from fontTools.voltLib import ast as VoltAst
+from fontTools.voltLib.parser import Parser as VoltParser
 
 
 class FeaWriter:
@@ -22,7 +21,7 @@ class FeaWriter:
         if font is not None:
             self._glyph_order = font.getGlyphOrder()
 
-        self._doc = FeaAst.FeatureFile()
+        self._doc = ast.FeatureFile()
         self._gdef = {}
         self._groups = {}
         self._features = {}
@@ -41,25 +40,25 @@ class FeaWriter:
         statements = self._doc.statements
 
         for ftag, scripts in self._features.items():
-            feature = FeaAst.FeatureBlock(ftag)
+            feature = ast.FeatureBlock(ftag)
             for stag, langs in scripts.items():
-                script = FeaAst.ScriptStatement(stag)
+                script = ast.ScriptStatement(stag)
                 feature.statements.append(script)
                 for ltag, lookups in langs.items():
-                    lang = FeaAst.LanguageStatement(ltag)
+                    lang = ast.LanguageStatement(ltag)
                     feature.statements.append(lang)
                     for name in lookups:
                         lookup = self._lookups[name]
-                        lookupref = FeaAst.LookupReferenceStatement(lookup)
+                        lookupref = ast.LookupReferenceStatement(lookup)
                         feature.statements.append(lookupref)
             statements.append(feature)
 
-        gdef = FeaAst.TableBlock("GDEF")
+        gdef = ast.TableBlock("GDEF")
         gdef.statements.append(
-            FeaAst.GlyphClassDefStatement(self._gdef.get("BASE"),
-                                          self._gdef.get("MARK"),
-                                          self._gdef.get("LIGATURE"),
-                                          self._gdef.get("COMPONENT")))
+            ast.GlyphClassDefStatement(self._gdef.get("BASE"),
+                                       self._gdef.get("MARK"),
+                                       self._gdef.get("LIGATURE"),
+                                       self._gdef.get("COMPONENT")))
 
         statements.append(gdef)
 
@@ -68,8 +67,8 @@ class FeaWriter:
 
     def GroupDefinition(self, group):
         name = self._className(group.name)
-        glyphs = FeaAst.GlyphClass(group.glyphSet())
-        glyphclass = FeaAst.GlyphClassDefinition(name, glyphs)
+        glyphs = ast.GlyphClass(group.glyphSet())
+        glyphclass = ast.GlyphClassDefinition(name, glyphs)
         self._groups[group.name] = glyphclass
         self._doc.statements.append(glyphclass)
 
@@ -80,7 +79,7 @@ class FeaWriter:
             self._glyph_map[glyph.name] = glyph.name
 
         if glyph.type not in self._gdef:
-            self._gdef[glyph.type] = FeaAst.GlyphClass()
+            self._gdef[glyph.type] = ast.GlyphClass()
         self._gdef[glyph.type].glyphs.append(glyph.name)
 
     def ScriptDefinition(self, script):
@@ -109,15 +108,15 @@ class FeaWriter:
             flags |= 8
         elif isinstance(lookup.process_marks, str):
             name = lookup.process_marks
-            mark_attachement = FeaAst.GlyphClassName(self._groups[name])
+            mark_attachement = ast.GlyphClassName(self._groups[name])
         elif lookup.mark_glyph_set is not None:
             name = lookup.mark_glyph_set
-            mark_filtering = FeaAst.GlyphClassName(self._groups[name])
+            mark_filtering = ast.GlyphClassName(self._groups[name])
 
-        fea_lookup = FeaAst.LookupBlock(self._name(lookup.name))
+        fea_lookup = ast.LookupBlock(self._name(lookup.name))
         if flags or mark_attachement is not None or mark_filtering is not None:
-            lookupflags = FeaAst.LookupFlagStatement(flags, mark_attachement,
-                                                     mark_filtering)
+            lookupflags = ast.LookupFlagStatement(flags, mark_attachement,
+                                                  mark_filtering)
             fea_lookup.statements.append(lookupflags)
 
         if lookup.sub is not None:
@@ -127,17 +126,17 @@ class FeaWriter:
                 context = lookup.context[0]
                 if context.left:
                     left = context.left[0] # FIXME
-                    prefix = [FeaAst.GlyphClass([FeaAst.GlyphName(g) for g in left.glyphSet()])]
+                    prefix = [ast.GlyphClass([ast.GlyphName(g) for g in left.glyphSet()])]
                 if context.right:
                     right = context.right[0] # FIXME
-                    suffix = [FeaAst.GlyphClass([FeaAst.GlyphName(g) for g in right.glyphSet()])]
+                    suffix = [ast.GlyphClass([ast.GlyphName(g) for g in right.glyphSet()])]
 
-            if isinstance(lookup.sub, ast.SubstitutionLigatureDefinition):
+            if isinstance(lookup.sub, VoltAst.SubstitutionLigatureDefinition):
                 for key, val in lookup.sub.mapping.items():
                     # FIXME
-                    glyphs = [FeaAst.GlyphName(g) for g in key.glyphSet()]
-                    replacement = FeaAst.GlyphName(val.glyphSet()[0])
-                    subst = FeaAst.LigatureSubstStatement(prefix, glyphs,
+                    glyphs = [ast.GlyphName(g) for g in key.glyphSet()]
+                    replacement = ast.GlyphName(val.glyphSet()[0])
+                    subst = ast.LigatureSubstStatement(prefix, glyphs,
                                 suffix, replacement, False)
                     fea_lookup.statements.append(subst)
 
@@ -146,7 +145,7 @@ class FeaWriter:
 
         self._lookups[lookup.name] = fea_lookup
         if lookup.comments is not None:
-            self._doc.statements.append(FeaAst.Comment(lookup.comments))
+            self._doc.statements.append(ast.Comment(lookup.comments))
         self._doc.statements.append(fea_lookup)
 
 def main(filename, outfilename):
@@ -157,9 +156,9 @@ def main(filename, outfilename):
             with NamedTemporaryFile(delete=False) as temp:
                 temp.write(font["TSIV"].data)
                 temp.flush()
-                parser = Parser(temp.name)
+                parser = VoltParser(temp.name)
     except:
-        parser = Parser(filename)
+        parser = VoltParser(filename)
     writer = FeaWriter(font)
     res = parser.parse()
     reported = []
