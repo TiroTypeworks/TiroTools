@@ -27,7 +27,7 @@ class FeaWriter:
         self._features = {}
         self._lookups = {}
 
-    def _name(self, name):
+    def _lookupName(self, name):
         if self._NAME_START_RE.match(name[0]) is None:
             name = "_" + name
         out = self._NOT_NAME_RE.sub("_", name)
@@ -113,7 +113,7 @@ class FeaWriter:
             name = lookup.mark_glyph_set
             mark_filtering = ast.GlyphClassName(self._groups[name])
 
-        fea_lookup = ast.LookupBlock(self._name(lookup.name))
+        fea_lookup = ast.LookupBlock(self._lookupName(lookup.name))
         if flags or mark_attachement is not None or mark_filtering is not None:
             lookupflags = ast.LookupFlagStatement(flags, mark_attachement,
                                                   mark_filtering)
