@@ -1,5 +1,4 @@
 import re
-import sys
 
 from tempfile import NamedTemporaryFile
 
@@ -174,6 +173,7 @@ def main(filename, outfilename):
     writer.write(outfilename)
 
 if __name__ == '__main__':
+    import sys
     if len(sys.argv) == 3:
         main(sys.argv[1], sys.argv[2])
     else:
