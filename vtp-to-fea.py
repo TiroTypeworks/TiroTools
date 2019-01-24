@@ -64,9 +64,38 @@ class FeaWriter:
         with open(path, "w") as feafile:
             feafile.write(self._doc.asFea())
 
+    def GlyphName(self, glyph):
+        try:
+            name = glyph.glyph
+        except AttributeError:
+            name = glyph
+        return ast.GlyphName(self._glyph_map[name])
+
+    def GroupName(self, group):
+        try:
+            name = group.group
+        except AttributeError:
+            name = group
+        return ast.GlyphClassName(self._groups[name])
+
+    def Enum(self, enum, as_class=True):
+        items = []
+        for item in enum.enum:
+            if isinstance(item, VoltAst.GlyphName):
+                items.append(self.GlyphName(item))
+            elif isinstance(item, VoltAst.GroupName):
+                items.append(self.GroupName(item))
+            elif isinstance(item, VoltAst.Enum):
+                items.append(self.Enum(item))
+            else:
+                assert False, "%s is not handled" % item
+        if as_class:
+            return ast.GlyphClass(items)
+        return items
+
     def GroupDefinition(self, group):
         name = self._className(group.name)
-        glyphs = ast.GlyphClass(group.glyphSet())
+        glyphs = self.Enum(group.enum)
         glyphclass = ast.GlyphClassDefinition(name, glyphs)
         self._groups[group.name] = glyphclass
         self._doc.statements.append(glyphclass)
@@ -125,18 +154,18 @@ class FeaWriter:
                 context = lookup.context[0]
                 if context.left:
                     left = context.left[0] # FIXME
-                    prefix = [ast.GlyphClass([ast.GlyphName(g) for g in left.glyphSet()])]
+                    prefix = [self.Enum(left)]
                 if context.right:
                     right = context.right[0] # FIXME
-                    suffix = [ast.GlyphClass([ast.GlyphName(g) for g in right.glyphSet()])]
+                    suffix = [self.Enum(right)]
 
             if isinstance(lookup.sub, VoltAst.SubstitutionLigatureDefinition):
                 for key, val in lookup.sub.mapping.items():
-                    # FIXME
-                    glyphs = [ast.GlyphName(g) for g in key.glyphSet()]
-                    replacement = ast.GlyphName(val.glyphSet()[0])
+                    glyphs = self.Enum(key, False)
+                    replacement = self.Enum(val, False)
+                    assert(len(replacement) == 1)
                     subst = ast.LigatureSubstStatement(prefix, glyphs,
-                                suffix, replacement, False)
+                                suffix, replacement[0], False)
                     fea_lookup.statements.append(subst)
 
         if lookup.pos is not None:
