@@ -128,10 +128,13 @@ class VtpToFea:
         return ast.GlyphClass(self._coverage(enum.enum))
 
     def _context(self, context):
-        coverage = self._coverage(context)
-        if not isinstance(coverage, (tuple, list)):
-            coverage = [coverage]
-        return coverage
+        out = []
+        for item in context:
+            coverage = self._coverage(item)
+            if not isinstance(coverage, (tuple, list)):
+                coverage = [coverage]
+            out.extend(coverage)
+        return out
 
     def _groupDefinition(self, group):
         name = self._className(group.name)
@@ -193,13 +196,10 @@ class VtpToFea:
             prefix = []
             suffix = []
             if lookup.context:
+                assert(len(lookup.context) == 1)
                 context = lookup.context[0]
-                if context.left:
-                    assert(len(context.left) == 1) # FIXME
-                    prefix = self._context(context.left[0])
-                if context.right:
-                    assert(len(context.right) == 1) # FIXME
-                    suffix = self._context(context.right[0])
+                prefix = self._context(context.left)
+                suffix = self._context(context.right)
 
             for key, val in sub.mapping.items():
                 subst = None
