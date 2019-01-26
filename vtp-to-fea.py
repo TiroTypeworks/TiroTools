@@ -78,7 +78,7 @@ class FeaWriter:
             name = group
         return ast.GlyphClassName(self._groups[name])
 
-    def Coverage(self, coverage, as_class=True):
+    def Coverage(self, coverage):
         items = []
         for item in coverage:
             if isinstance(item, VoltAst.GlyphName):
@@ -89,12 +89,16 @@ class FeaWriter:
                 items.append(self.Enum(item))
             else:
                 assert False, "%s is not handled" % item
-        if as_class:
-            return ast.GlyphClass(items)
         return items
 
     def Enum(self, enum):
-        return self.Coverage(enum.enum)
+        return ast.GlyphClass(self.Coverage(enum.enum))
+
+    def Context(self, context):
+        coverage = self.Coverage(context)
+        if not isinstance(coverage, (tuple, list)):
+            coverage = [coverage]
+        return coverage
 
     def GroupDefinition(self, group):
         name = self._className(group.name)
@@ -151,25 +155,39 @@ class FeaWriter:
             fea_lookup.statements.append(lookupflags)
 
         if lookup.sub is not None:
+            sub = lookup.sub
+
             prefix = []
             suffix = []
             if lookup.context:
                 context = lookup.context[0]
                 if context.left:
-                    left = context.left[0] # FIXME
-                    prefix = [self.Coverage(left)]
+                    assert(len(context.left) == 1) # FIXME
+                    prefix = self.Context(context.left[0])
                 if context.right:
-                    right = context.right[0] # FIXME
-                    suffix = [self.Coverage(right)]
+                    assert(len(context.right) == 1) # FIXME
+                    suffix = self.Context(context.right[0])
 
-            if isinstance(lookup.sub, VoltAst.SubstitutionLigatureDefinition):
-                for key, val in lookup.sub.mapping.items():
-                    glyphs = self.Coverage(key, False)
-                    replacement = self.Coverage(val, False)
+            for key, val in sub.mapping.items():
+                subst = None
+                glyphs = self.Coverage(key)
+                replacement = self.Coverage(val)
+                if isinstance(sub, VoltAst.SubstitutionSingleDefinition):
+                    assert(len(glyphs) == 1)
+                    assert(len(replacement) == 1)
+                    subst = ast.SingleSubstStatement(glyphs, replacement,
+                                prefix, suffix, False)
+                elif isinstance(sub, VoltAst.SubstitutionMultipleDefinition):
+                    assert(len(glyphs) == 1)
+                    subst = ast.MultipleSubstStatement(prefix, glyphs[0], suffix,
+                                replacement)
+                elif isinstance(sub, VoltAst.SubstitutionLigatureDefinition):
                     assert(len(replacement) == 1)
                     subst = ast.LigatureSubstStatement(prefix, glyphs,
                                 suffix, replacement[0], False)
-                    fea_lookup.statements.append(subst)
+                else:
+                    assert False, "%s is not handled" % sub
+                fea_lookup.statements.append(subst)
 
         if lookup.pos is not None:
             pass
