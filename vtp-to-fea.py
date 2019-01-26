@@ -78,9 +78,9 @@ class FeaWriter:
             name = group
         return ast.GlyphClassName(self._groups[name])
 
-    def Enum(self, enum, as_class=True):
+    def Coverage(self, coverage, as_class=True):
         items = []
-        for item in enum.enum:
+        for item in coverage:
             if isinstance(item, VoltAst.GlyphName):
                 items.append(self.GlyphName(item))
             elif isinstance(item, VoltAst.GroupName):
@@ -92,6 +92,9 @@ class FeaWriter:
         if as_class:
             return ast.GlyphClass(items)
         return items
+
+    def Enum(self, enum):
+        return self.Coverage(enum.enum)
 
     def GroupDefinition(self, group):
         name = self._className(group.name)
@@ -154,15 +157,15 @@ class FeaWriter:
                 context = lookup.context[0]
                 if context.left:
                     left = context.left[0] # FIXME
-                    prefix = [self.Enum(left)]
+                    prefix = [self.Coverage(left)]
                 if context.right:
                     right = context.right[0] # FIXME
-                    suffix = [self.Enum(right)]
+                    suffix = [self.Coverage(right)]
 
             if isinstance(lookup.sub, VoltAst.SubstitutionLigatureDefinition):
                 for key, val in lookup.sub.mapping.items():
-                    glyphs = self.Enum(key, False)
-                    replacement = self.Enum(val, False)
+                    glyphs = self.Coverage(key, False)
+                    replacement = self.Coverage(val, False)
                     assert(len(replacement) == 1)
                     subst = ast.LigatureSubstStatement(prefix, glyphs,
                                 suffix, replacement[0], False)
