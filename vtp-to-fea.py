@@ -56,11 +56,17 @@ class VtpToFea:
 
         reported = []
         for statement in volt_doc.statements:
-            name = type(statement).__name__
-            if hasattr(self, name):
-                getattr(self, name)(statement)
+            name = type(statement)
+            if isinstance(statement, VoltAst.GlyphDefinition):
+                self._glyphDefinition(statement)
+            elif isinstance(statement, VoltAst.ScriptDefinition):
+                self._scriptDefinition(statement)
+            elif isinstance(statement, VoltAst.GroupDefinition):
+                self._groupDefinition(statement)
+            elif isinstance(statement, VoltAst.LookupDefinition):
+                self._lookupDefinition(statement)
             elif name not in reported:
-                print("Can’t handle: %s" % name)
+                print("%s is not handled" % name)
                 reported.append(name)
 
         statements = self._doc.statements
@@ -91,50 +97,50 @@ class VtpToFea:
         with open(path, "w") as feafile:
             feafile.write(self._doc.asFea())
 
-    def GlyphName(self, glyph):
+    def _glyphName(self, glyph):
         try:
             name = glyph.glyph
         except AttributeError:
             name = glyph
         return ast.GlyphName(self._glyph_map[name])
 
-    def GroupName(self, group):
+    def _groupName(self, group):
         try:
             name = group.group
         except AttributeError:
             name = group
         return ast.GlyphClassName(self._groups[name])
 
-    def Coverage(self, coverage):
+    def _coverage(self, coverage):
         items = []
         for item in coverage:
             if isinstance(item, VoltAst.GlyphName):
-                items.append(self.GlyphName(item))
+                items.append(self._glyphName(item))
             elif isinstance(item, VoltAst.GroupName):
-                items.append(self.GroupName(item))
+                items.append(self._groupName(item))
             elif isinstance(item, VoltAst.Enum):
-                items.append(self.Enum(item))
+                items.append(self._enum(item))
             else:
                 assert False, "%s is not handled" % item
         return items
 
-    def Enum(self, enum):
-        return ast.GlyphClass(self.Coverage(enum.enum))
+    def _enum(self, enum):
+        return ast.GlyphClass(self._coverage(enum.enum))
 
-    def Context(self, context):
-        coverage = self.Coverage(context)
+    def _context(self, context):
+        coverage = self._coverage(context)
         if not isinstance(coverage, (tuple, list)):
             coverage = [coverage]
         return coverage
 
-    def GroupDefinition(self, group):
+    def _groupDefinition(self, group):
         name = self._className(group.name)
-        glyphs = self.Enum(group.enum)
+        glyphs = self._enum(group.enum)
         glyphclass = ast.GlyphClassDefinition(name, glyphs)
         self._groups[group.name] = glyphclass
         self._doc.statements.append(glyphclass)
 
-    def GlyphDefinition(self, glyph):
+    def _glyphDefinition(self, glyph):
         try:
             self._glyph_map[glyph.name] = self._glyph_order[glyph.id]
         except TypeError:
@@ -144,7 +150,7 @@ class VtpToFea:
             self._gdef[glyph.type] = ast.GlyphClass()
         self._gdef[glyph.type].glyphs.append(glyph.name)
 
-    def ScriptDefinition(self, script):
+    def _scriptDefinition(self, script):
         for lang in script.langs:
             for feature in lang.features:
                 if feature.tag not in self._features:
@@ -154,7 +160,7 @@ class VtpToFea:
                 assert lang.tag not in self._features[feature.tag][script.tag]
                 self._features[feature.tag][script.tag][lang.tag] = feature.lookups
 
-    def LookupDefinition(self, lookup):
+    def _lookupDefinition(self, lookup):
         mark_attachement = None
         mark_filtering = None
 
@@ -190,15 +196,15 @@ class VtpToFea:
                 context = lookup.context[0]
                 if context.left:
                     assert(len(context.left) == 1) # FIXME
-                    prefix = self.Context(context.left[0])
+                    prefix = self._context(context.left[0])
                 if context.right:
                     assert(len(context.right) == 1) # FIXME
-                    suffix = self.Context(context.right[0])
+                    suffix = self._context(context.right[0])
 
             for key, val in sub.mapping.items():
                 subst = None
-                glyphs = self.Coverage(key)
-                replacement = self.Coverage(val)
+                glyphs = self._coverage(key)
+                replacement = self._coverage(val)
                 if isinstance(sub, VoltAst.SubstitutionSingleDefinition):
                     assert(len(glyphs) == 1)
                     assert(len(replacement) == 1)
