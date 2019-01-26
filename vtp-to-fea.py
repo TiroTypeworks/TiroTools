@@ -193,34 +193,40 @@ class VtpToFea:
         if lookup.sub is not None:
             sub = lookup.sub
 
-            prefix = []
-            suffix = []
+            contexts = []
             if lookup.context:
-                assert(len(lookup.context) == 1)
-                context = lookup.context[0]
-                prefix = self._context(context.left)
-                suffix = self._context(context.right)
+                for context in lookup.context:
+                    prefix = self._context(context.left)
+                    suffix = self._context(context.right)
+                    ignore = context.ex_or_in == "EXCEPT_CONTEXT"
+                    contexts.append([prefix, suffix, ignore])
+            else:
+                contexts.append([[], [], False])
 
-            for key, val in sub.mapping.items():
-                subst = None
-                glyphs = self._coverage(key)
-                replacement = self._coverage(val)
-                if isinstance(sub, VoltAst.SubstitutionSingleDefinition):
-                    assert(len(glyphs) == 1)
-                    assert(len(replacement) == 1)
-                    subst = ast.SingleSubstStatement(glyphs, replacement,
-                                prefix, suffix, False)
-                elif isinstance(sub, VoltAst.SubstitutionMultipleDefinition):
-                    assert(len(glyphs) == 1)
-                    subst = ast.MultipleSubstStatement(prefix, glyphs[0], suffix,
-                                replacement)
-                elif isinstance(sub, VoltAst.SubstitutionLigatureDefinition):
-                    assert(len(replacement) == 1)
-                    subst = ast.LigatureSubstStatement(prefix, glyphs,
-                                suffix, replacement[0], False)
-                else:
-                    assert False, "%s is not handled" % sub
-                fea_lookup.statements.append(subst)
+            for prefix, suffix, ignore in contexts:
+                for key, val in sub.mapping.items():
+                    subst = None
+                    glyphs = self._coverage(key)
+                    replacement = self._coverage(val)
+                    if ignore:
+                        chain_context = (prefix, glyphs, suffix)
+                        subst = ast.IgnoreSubstStatement([chain_context])
+                    elif isinstance(sub, VoltAst.SubstitutionSingleDefinition):
+                        assert(len(glyphs) == 1)
+                        assert(len(replacement) == 1)
+                        subst = ast.SingleSubstStatement(glyphs, replacement,
+                                    prefix, suffix, False)
+                    elif isinstance(sub, VoltAst.SubstitutionMultipleDefinition):
+                        assert(len(glyphs) == 1)
+                        subst = ast.MultipleSubstStatement(prefix, glyphs[0], suffix,
+                                    replacement)
+                    elif isinstance(sub, VoltAst.SubstitutionLigatureDefinition):
+                        assert(len(replacement) == 1)
+                        subst = ast.LigatureSubstStatement(prefix, glyphs,
+                                    suffix, replacement[0], False)
+                    else:
+                        assert False, "%s is not handled" % sub
+                    fea_lookup.statements.append(subst)
 
         if lookup.pos is not None:
             pass
