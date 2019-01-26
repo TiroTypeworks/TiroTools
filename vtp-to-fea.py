@@ -80,7 +80,7 @@ class VtpToFea:
                     lang = ast.LanguageStatement(ltag)
                     feature.statements.append(lang)
                     for name in lookups:
-                        lookup = self._lookups[name]
+                        lookup = self._lookups[name.lower()]
                         lookupref = ast.LookupReferenceStatement(lookup)
                         feature.statements.append(lookupref)
             statements.append(feature)
@@ -109,7 +109,7 @@ class VtpToFea:
             name = group.group
         except AttributeError:
             name = group
-        return ast.GlyphClassName(self._groups[name])
+        return ast.GlyphClassName(self._groups[name.lower()])
 
     def _coverage(self, coverage):
         items = []
@@ -140,7 +140,7 @@ class VtpToFea:
         name = self._className(group.name)
         glyphs = self._enum(group.enum)
         glyphclass = ast.GlyphClassDefinition(name, glyphs)
-        self._groups[group.name] = glyphclass
+        self._groups[group.name.lower()] = glyphclass
         self._doc.statements.append(glyphclass)
 
     def _glyphDefinition(self, glyph):
@@ -178,11 +178,9 @@ class VtpToFea:
         if not lookup.process_marks:
             flags |= 8
         elif isinstance(lookup.process_marks, str):
-            name = lookup.process_marks
-            mark_attachement = ast.GlyphClassName(self._groups[name])
+            mark_attachement = self._groupName(lookup.process_marks)
         elif lookup.mark_glyph_set is not None:
-            name = lookup.mark_glyph_set
-            mark_filtering = ast.GlyphClassName(self._groups[name])
+            mark_filtering = self._groupName(lookup.mark_glyph_set)
 
         fea_lookup = ast.LookupBlock(self._lookupName(lookup.name))
         if flags or mark_attachement is not None or mark_filtering is not None:
@@ -231,7 +229,7 @@ class VtpToFea:
         if lookup.pos is not None:
             pass
 
-        self._lookups[lookup.name] = fea_lookup
+        self._lookups[lookup.name.lower()] = fea_lookup
         if lookup.comments is not None:
             self._doc.statements.append(ast.Comment(lookup.comments))
         self._doc.statements.append(fea_lookup)
