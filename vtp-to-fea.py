@@ -8,17 +8,16 @@ from fontTools.voltLib import ast as VoltAst
 from fontTools.voltLib.parser import Parser as VoltParser
 
 
-class FeaWriter:
+class VtpToFea:
     _NAME_START_RE = re.compile(r"[A-Za-z_+*:.\^~!\\]")
     _NOT_NAME_RE = re.compile(r"[^A-Za-z0-9_.+*:\^~!/-]")
     _NOT_CLASS_NAME_RE = re.compile(r"[^A-Za-z_0-9.]")
 
-    def __init__(self, font):
-        self._font = font
+    def __init__(self, filename):
+        self._filename = filename
+
         self._glyph_map = {}
         self._glyph_order = None
-        if font is not None:
-            self._glyph_order = font.getGlyphOrder()
 
         self._doc = ast.FeatureFile()
         self._gdef = {}
@@ -35,7 +34,35 @@ class FeaWriter:
     def _className(self, name):
         return self._NOT_CLASS_NAME_RE.sub("_", name)
 
-    def write(self, path):
+    def _parse(self, filename):
+        font = None
+        try:
+            font = TTFont(filename)
+            if "TSIV" in font:
+                with NamedTemporaryFile(delete=False) as temp:
+                    temp.write(font["TSIV"].data)
+                    temp.flush()
+                    parser = VoltParser(temp.name)
+        except:
+            parser = VoltParser(filename)
+
+        return parser.parse(), font
+
+    def convert(self, path):
+        volt_doc, font = self._parse(self._filename)
+
+        if font is not None:
+            self._glyph_order = font.getGlyphOrder()
+
+        reported = []
+        for statement in volt_doc.statements:
+            name = type(statement).__name__
+            if hasattr(self, name):
+                getattr(self, name)(statement)
+            elif name not in reported:
+                print("Can’t handle: %s" % name)
+                reported.append(name)
+
         statements = self._doc.statements
 
         for ftag, scripts in self._features.items():
@@ -197,30 +224,10 @@ class FeaWriter:
             self._doc.statements.append(ast.Comment(lookup.comments))
         self._doc.statements.append(fea_lookup)
 
+
 def main(filename, outfilename):
-    font = None
-    try:
-        font = TTFont(filename)
-        if "TSIV" in font:
-            with NamedTemporaryFile(delete=False) as temp:
-                temp.write(font["TSIV"].data)
-                temp.flush()
-                parser = VoltParser(temp.name)
-    except:
-        parser = VoltParser(filename)
-    writer = FeaWriter(font)
-    res = parser.parse()
-    reported = []
-
-    for s in res.statements:
-        name = type(s).__name__
-        if hasattr(writer, name):
-            getattr(writer, name)(s)
-        elif not name in reported:
-            print("Can’t handle: %s" % name)
-            reported.append(name)
-
-    writer.write(outfilename)
+    converter = VtpToFea(filename)
+    converter.convert(outfilename)
 
 if __name__ == '__main__':
     import sys
