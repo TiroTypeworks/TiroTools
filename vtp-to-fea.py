@@ -65,6 +65,9 @@ class VtpToFea:
                 self._groupDefinition(statement)
             elif isinstance(statement, VoltAst.LookupDefinition):
                 self._lookupDefinition(statement)
+            elif isinstance(statement, VoltAst.SettingDefinition):
+                # Nothing here can be written to feature files.
+                pass
             elif name not in reported:
                 print("%s is not handled" % name)
                 reported.append(name)
