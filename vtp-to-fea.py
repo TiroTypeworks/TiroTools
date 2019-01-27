@@ -88,12 +88,13 @@ class VtpToFea:
                         feature.statements.append(lookupref)
             statements.append(feature)
 
-        gdef = ast.TableBlock("GDEF")
-        gdef.statements.append(
-            ast.GlyphClassDefStatement(self._gdef.get("BASE"),
-                                       self._gdef.get("MARK"),
-                                       self._gdef.get("LIGATURE"),
-                                       self._gdef.get("COMPONENT")))
+        if self._gdef:
+            gdef = ast.TableBlock("GDEF")
+            gdef.statements.append(
+                ast.GlyphClassDefStatement(self._gdef.get("BASE"),
+                                           self._gdef.get("MARK"),
+                                           self._gdef.get("LIGATURE"),
+                                           self._gdef.get("COMPONENT")))
 
         statements.append(gdef)
 
