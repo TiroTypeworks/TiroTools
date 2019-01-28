@@ -19,7 +19,6 @@ class VtpToFea:
         self._glyph_map = {}
         self._glyph_order = None
 
-        self._doc = ast.FeatureFile()
         self._gdef = {}
         self._groups = {}
         self._features = {}
@@ -54,15 +53,18 @@ class VtpToFea:
         if font is not None:
             self._glyph_order = font.getGlyphOrder()
 
+        fea = ast.FeatureFile()
+
         for statement in volt_doc.statements:
+            ret = None
             if isinstance(statement, VoltAst.GlyphDefinition):
-                self._glyphDefinition(statement)
+                ret = self._glyphDefinition(statement)
             elif isinstance(statement, VoltAst.ScriptDefinition):
-                self._scriptDefinition(statement)
+                ret = self._scriptDefinition(statement)
             elif isinstance(statement, VoltAst.GroupDefinition):
-                self._groupDefinition(statement)
+                ret = self._groupDefinition(statement)
             elif isinstance(statement, VoltAst.LookupDefinition):
-                self._lookupDefinition(statement)
+                ret = self._lookupDefinition(statement)
             elif isinstance(statement, VoltAst.SettingDefinition):
                 # Nothing here can be written to feature files.
                 pass
@@ -71,8 +73,7 @@ class VtpToFea:
                 pass
             else:
                 assert False, "%s is not handled" % statement
-
-        statements = self._doc.statements
+            fea.statements.extend(ret if ret else [])
 
         for ftag, scripts in self._features.items():
             feature = ast.FeatureBlock(ftag)
@@ -86,7 +87,7 @@ class VtpToFea:
                         lookup = self._lookups[name.lower()]
                         lookupref = ast.LookupReferenceStatement(lookup)
                         feature.statements.append(lookupref)
-            statements.append(feature)
+            fea.statements.append(feature)
 
         if self._gdef:
             gdef = ast.TableBlock("GDEF")
@@ -96,10 +97,10 @@ class VtpToFea:
                                            self._gdef.get("LIGATURE"),
                                            self._gdef.get("COMPONENT")))
 
-        statements.append(gdef)
+            fea.statements.append(gdef)
 
         with open(path, "w") as feafile:
-            feafile.write(self._doc.asFea())
+            feafile.write(fea.asFea())
 
     def _glyphName(self, glyph):
         try:
@@ -145,7 +146,7 @@ class VtpToFea:
         glyphs = self._enum(group.enum)
         glyphclass = ast.GlyphClassDefinition(name, glyphs)
         self._groups[group.name.lower()] = glyphclass
-        self._doc.statements.append(glyphclass)
+        return [glyphclass]
 
     def _glyphDefinition(self, glyph):
         try:
@@ -239,9 +240,13 @@ class VtpToFea:
                 pass
 
         self._lookups[lookup.name.lower()] = fea_lookup
+
+        statements = []
         if lookup.comments is not None:
-            self._doc.statements.append(ast.Comment(lookup.comments))
-        self._doc.statements.append(fea_lookup)
+            statements.append(ast.Comment(lookup.comments))
+        statements.append(fea_lookup)
+
+        return statements
 
 
 def main(filename, outfilename):
