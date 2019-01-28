@@ -167,6 +167,34 @@ class VtpToFea:
                 assert lang.tag not in self._features[feature.tag][script.tag]
                 self._features[feature.tag][script.tag][lang.tag] = feature.lookups
 
+    def _gsubLookup(self, sub, prefix, suffix, ignore):
+        statements = []
+        for key, val in sub.mapping.items():
+            subst = None
+            glyphs = self._coverage(key)
+            replacement = self._coverage(val)
+            if ignore:
+                chain_context = (prefix, glyphs, suffix)
+                subst = ast.IgnoreSubstStatement([chain_context])
+            elif isinstance(sub, VoltAst.SubstitutionSingleDefinition):
+                assert(len(glyphs) == 1)
+                assert(len(replacement) == 1)
+                subst = ast.SingleSubstStatement(glyphs, replacement,
+                            prefix, suffix, False)
+            elif isinstance(sub, VoltAst.SubstitutionMultipleDefinition):
+                assert(len(glyphs) == 1)
+                subst = ast.MultipleSubstStatement(prefix, glyphs[0], suffix,
+                            replacement)
+            elif isinstance(sub, VoltAst.SubstitutionLigatureDefinition):
+                assert(len(replacement) == 1)
+                subst = ast.LigatureSubstStatement(prefix, glyphs,
+                            suffix, replacement[0], False)
+            else:
+                assert False, "%s is not handled" % sub
+            statements.append(subst)
+
+        return statements
+
     def _lookupDefinition(self, lookup):
         mark_attachement = None
         mark_filtering = None
@@ -192,46 +220,23 @@ class VtpToFea:
                                                   mark_filtering)
             fea_lookup.statements.append(lookupflags)
 
-        if lookup.sub is not None:
-            sub = lookup.sub
+        contexts = []
+        if lookup.context:
+            for context in lookup.context:
+                prefix = self._context(context.left)
+                suffix = self._context(context.right)
+                ignore = context.ex_or_in == "EXCEPT_CONTEXT"
+                contexts.append([prefix, suffix, ignore])
+        else:
+            contexts.append([[], [], False])
 
-            contexts = []
-            if lookup.context:
-                for context in lookup.context:
-                    prefix = self._context(context.left)
-                    suffix = self._context(context.right)
-                    ignore = context.ex_or_in == "EXCEPT_CONTEXT"
-                    contexts.append([prefix, suffix, ignore])
-            else:
-                contexts.append([[], [], False])
+        for prefix, suffix, ignore in contexts:
+            if lookup.sub is not None:
+                fea_lookup.statements.extend(
+                        self._gsubLookup(lookup.sub, prefix, suffix, ignore))
 
-            for prefix, suffix, ignore in contexts:
-                for key, val in sub.mapping.items():
-                    subst = None
-                    glyphs = self._coverage(key)
-                    replacement = self._coverage(val)
-                    if ignore:
-                        chain_context = (prefix, glyphs, suffix)
-                        subst = ast.IgnoreSubstStatement([chain_context])
-                    elif isinstance(sub, VoltAst.SubstitutionSingleDefinition):
-                        assert(len(glyphs) == 1)
-                        assert(len(replacement) == 1)
-                        subst = ast.SingleSubstStatement(glyphs, replacement,
-                                    prefix, suffix, False)
-                    elif isinstance(sub, VoltAst.SubstitutionMultipleDefinition):
-                        assert(len(glyphs) == 1)
-                        subst = ast.MultipleSubstStatement(prefix, glyphs[0], suffix,
-                                    replacement)
-                    elif isinstance(sub, VoltAst.SubstitutionLigatureDefinition):
-                        assert(len(replacement) == 1)
-                        subst = ast.LigatureSubstStatement(prefix, glyphs,
-                                    suffix, replacement[0], False)
-                    else:
-                        assert False, "%s is not handled" % sub
-                    fea_lookup.statements.append(subst)
-
-        if lookup.pos is not None:
-            pass
+            if lookup.pos is not None:
+                pass
 
         self._lookups[lookup.name.lower()] = fea_lookup
         if lookup.comments is not None:
