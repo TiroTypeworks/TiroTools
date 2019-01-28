@@ -145,6 +145,7 @@ class VtpToFea:
         name = self._className(group.name)
         glyphs = self._enum(group.enum)
         glyphclass = ast.GlyphClassDefinition(name, glyphs)
+
         self._groups[group.name.lower()] = glyphclass
         return [glyphclass]
 
