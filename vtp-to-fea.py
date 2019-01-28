@@ -222,6 +222,9 @@ class VtpToFea:
                                                   mark_filtering)
             fea_lookup.statements.append(lookupflags)
 
+        # FIXME
+        assert not lookup.reversal
+
         contexts = []
         if lookup.context:
             for context in lookup.context:
