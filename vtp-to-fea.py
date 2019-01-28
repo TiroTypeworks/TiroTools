@@ -54,9 +54,7 @@ class VtpToFea:
         if font is not None:
             self._glyph_order = font.getGlyphOrder()
 
-        reported = []
         for statement in volt_doc.statements:
-            name = type(statement)
             if isinstance(statement, VoltAst.GlyphDefinition):
                 self._glyphDefinition(statement)
             elif isinstance(statement, VoltAst.ScriptDefinition):
@@ -68,9 +66,11 @@ class VtpToFea:
             elif isinstance(statement, VoltAst.SettingDefinition):
                 # Nothing here can be written to feature files.
                 pass
-            elif name not in reported:
-                print("%s is not handled" % name)
-                reported.append(name)
+            elif isinstance(statement, VoltAst.AnchorDefinition):
+                # FIXME
+                pass
+            else:
+                assert False, "%s is not handled" % statement
 
         statements = self._doc.statements
 
