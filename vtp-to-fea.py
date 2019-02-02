@@ -169,8 +169,20 @@ class VtpToFea:
                 assert lang.tag not in self._features[feature.tag][script.tag]
                 self._features[feature.tag][script.tag][lang.tag] = feature.lookups
 
-    def _gsubLookup(self, sub, prefix, suffix, ignore):
-        statements = []
+    def _adjustment(self, adjustment):
+        adv, dx, dy, adv_adjust_by, dx_adjust_by, dy_adjust_by = adjustment
+        # FIXME
+        assert not adv_adjust_by
+        assert not dx_adjust_by
+        assert not dy_adjust_by
+        return ast.ValueRecord(xPlacement=dx, yPlacement=dy, xAdvance=adv,
+                               xPlaDevice=None, yPlaDevice=None,
+                               xAdvDevice=None)
+
+    def _gsubLookup(self, lookup, prefix, suffix, ignore, fealookup):
+        statements = fealookup.statements
+
+        sub = lookup.sub
         for key, val in sub.mapping.items():
             subst = None
             glyphs = self._coverage(key)
@@ -195,7 +207,54 @@ class VtpToFea:
                 assert False, "%s is not handled" % sub
             statements.append(subst)
 
-        return statements
+    def _gposLookup(self, lookup, prefix, suffix, ignore, fealookup):
+        statements = fealookup.statements
+
+        # FIXME
+        assert not ignore
+
+        sublookup = None
+        for s in statements[:2]:
+            if isinstance(s, ast.LookupBlock):
+                sublookup = s
+
+        pos = lookup.pos
+        if isinstance(pos, VoltAst.PositionAdjustPairDefinition):
+            coverages_1 = pos.coverages_1
+            coverages_2 = pos.coverages_2
+            for (idx1, idx2), (pos1, pos2) in pos.adjust_pair.items():
+                glyphs1 = self._coverage(coverages_1[idx1 - 1])
+                glyphs2 = self._coverage(coverages_2[idx2 - 1])
+                record1 = self._adjustment(pos1)
+                record2 = self._adjustment(pos2)
+                assert len(glyphs1) == 1
+                assert len(glyphs2) == 1
+                pairpos = ast.PairPosStatement(glyphs1[0], record1, glyphs2[0],
+                                               record2)
+                if prefix or suffix:
+                    if sublookup is None:
+                        subname = self._lookupName(lookup.name) + "_sub"
+                        sublookup = ast.LookupBlock(subname)
+                        statements.append(sublookup)
+                    sublookup.statements.append(pairpos)
+                    glyphs = (glyphs1[0], glyphs2[0])
+                    lookups = (sublookup, sublookup)
+                    ctxtpos = ast.ChainContextPosStatement(prefix, glyphs, suffix, lookups)
+                    statements.append(ctxtpos)
+                else:
+                    statements.append(pairpos)
+        elif isinstance(pos, VoltAst.PositionAdjustSingleDefinition):
+            for a, b in pos.adjust_single:
+                glyphs = self._coverage(a)
+                record = self._adjustment(b)
+                assert len(glyphs) == 1
+                statements.append(ast.SinglePosStatement(
+                    list(zip(glyphs, [record])), prefix, suffix, False))
+        elif isinstance(pos, VoltAst.PositionAttachDefinition):
+            # FIXME
+            pass
+        else:
+            assert False, "%s is not handled" % pos
 
     def _lookupDefinition(self, lookup):
         mark_attachement = None
@@ -216,11 +275,11 @@ class VtpToFea:
         elif lookup.mark_glyph_set is not None:
             mark_filtering = self._groupName(lookup.mark_glyph_set)
 
-        fea_lookup = ast.LookupBlock(self._lookupName(lookup.name))
+        fealookup = ast.LookupBlock(self._lookupName(lookup.name))
         if flags or mark_attachement is not None or mark_filtering is not None:
             lookupflags = ast.LookupFlagStatement(flags, mark_attachement,
                                                   mark_filtering)
-            fea_lookup.statements.append(lookupflags)
+            fealookup.statements.append(lookupflags)
 
         # FIXME
         assert not lookup.reversal
@@ -237,18 +296,17 @@ class VtpToFea:
 
         for prefix, suffix, ignore in contexts:
             if lookup.sub is not None:
-                fea_lookup.statements.extend(
-                        self._gsubLookup(lookup.sub, prefix, suffix, ignore))
+                self._gsubLookup(lookup, prefix, suffix, ignore, fealookup)
 
             if lookup.pos is not None:
-                pass
+                self._gposLookup(lookup, prefix, suffix, ignore, fealookup)
 
-        self._lookups[lookup.name.lower()] = fea_lookup
+        self._lookups[lookup.name.lower()] = fealookup
 
         statements = []
         if lookup.comments is not None:
             statements.append(ast.Comment(lookup.comments))
-        statements.append(fea_lookup)
+        statements.append(fealookup)
 
         return statements
 
