@@ -24,6 +24,9 @@ class VtpToFea:
         self._features = {}
         self._lookups = {}
 
+        self._mark_classes = {}
+        self._anchors = {}
+
     def _lookupName(self, name):
         if self._NAME_START_RE.match(name[0]) is None:
             name = "_" + name
@@ -56,21 +59,28 @@ class VtpToFea:
         fea = ast.FeatureFile()
 
         for statement in volt_doc.statements:
+            if isinstance(statement, VoltAst.GlyphDefinition):
+                self._glyphDefinition(statement)
+            elif isinstance(statement, VoltAst.AnchorDefinition):
+                self._anchorDefinition(statement)
+
+        for statement in volt_doc.statements:
             ret = None
             if isinstance(statement, VoltAst.GlyphDefinition):
-                ret = self._glyphDefinition(statement)
+                # Handled above
+                pass
+            elif isinstance(statement, VoltAst.AnchorDefinition):
+                # Handled above
+                pass
+            elif isinstance(statement, VoltAst.SettingDefinition):
+                # Nothing here can be written to feature files.
+                pass
             elif isinstance(statement, VoltAst.ScriptDefinition):
                 ret = self._scriptDefinition(statement)
             elif isinstance(statement, VoltAst.GroupDefinition):
                 ret = self._groupDefinition(statement)
             elif isinstance(statement, VoltAst.LookupDefinition):
                 ret = self._lookupDefinition(statement)
-            elif isinstance(statement, VoltAst.SettingDefinition):
-                # Nothing here can be written to feature files.
-                pass
-            elif isinstance(statement, VoltAst.AnchorDefinition):
-                # FIXME
-                pass
             else:
                 assert False, "%s is not handled" % statement
             fea.statements.extend(ret if ret else [])
@@ -179,6 +189,44 @@ class VtpToFea:
                                xPlaDevice=None, yPlaDevice=None,
                                xAdvDevice=None)
 
+    def _anchor(self, adjustment):
+        adv, dx, dy, adv_adjust_by, dx_adjust_by, dy_adjust_by = adjustment
+        # FIXME
+        assert not adv_adjust_by
+        assert not dx_adjust_by
+        assert not dy_adjust_by
+        return ast.Anchor(dx or 0, dy or 0)
+
+    def _anchorDefinition(self, anchordef):
+        glyphname = anchordef.glyph_name
+        anchor = self._anchor(anchordef.pos)
+        glyphs = ast.GlyphClass([self._glyphName(glyphname)])
+
+        name = anchordef.name
+        if name.startswith("MARK_"):
+            name = "_".join(anchordef.name.split("_")[1:])
+
+        if name not in self._mark_classes:
+            self._mark_classes[name] = ast.MarkClass(self._className(name))
+        markclass = self._mark_classes[name]
+
+        mark = None
+        if anchordef.name.startswith("MARK_"):
+            mark = ast.MarkClassDefinition(markclass, anchor, glyphs)
+        else:
+            if "MARK" in self._gdef and glyphname in self._gdef["MARK"].glyphSet():
+                mark = ast.MarkMarkPosStatement(glyphs, [(anchor, markclass)])
+            elif "LIGATURE" in self._gdef and glyphname in self._gdef["LIGATURE"].glyphSet():
+                # FIXME
+                assert False
+                #mark = ast.MarkLigPosStatement(glyphs, ())
+            else:
+                mark = ast.MarkBasePosStatement(glyphs, [(anchor, markclass)])
+
+        if glyphname not in self._anchors:
+            self._anchors[glyphname] = {}
+        self._anchors[glyphname][anchordef.name] = mark
+
     def _gsubLookup(self, lookup, prefix, suffix, ignore, fealookup):
         statements = fealookup.statements
 
@@ -251,8 +299,15 @@ class VtpToFea:
                 statements.append(ast.SinglePosStatement(
                     list(zip(glyphs, [record])), prefix, suffix, False))
         elif isinstance(pos, VoltAst.PositionAttachDefinition):
-            # FIXME
-            pass
+           #assert not prefix
+           #assert not suffix
+            for glyphs, mark in pos.coverage_to:
+                for glyph in glyphs:
+                    for name in glyph.glyphSet():
+                        statements.append(self._anchors[name]["MARK_" + mark])
+                for base in pos.coverage:
+                    for name in base.glyphSet():
+                        statements.append(self._anchors[name][mark])
         else:
             assert False, "%s is not handled" % pos
 
