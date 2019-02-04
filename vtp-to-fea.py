@@ -255,52 +255,28 @@ class VtpToFea:
                 assert False, "%s is not handled" % sub
             statements.append(subst)
 
-    def _gposLookup(self, lookup, prefix, suffix, ignore, fealookup):
+    def _gposLookup(self, lookup, fealookup):
         statements = fealookup.statements
-
-        # FIXME
-        assert not ignore
-
-        sublookup = None
-        for s in statements[:2]:
-            if isinstance(s, ast.LookupBlock):
-                sublookup = s
 
         pos = lookup.pos
         if isinstance(pos, VoltAst.PositionAdjustPairDefinition):
-            coverages_1 = pos.coverages_1
-            coverages_2 = pos.coverages_2
             for (idx1, idx2), (pos1, pos2) in pos.adjust_pair.items():
-                glyphs1 = self._coverage(coverages_1[idx1 - 1])
-                glyphs2 = self._coverage(coverages_2[idx2 - 1])
+                glyphs1 = self._coverage(pos.coverages_1[idx1 - 1])
+                glyphs2 = self._coverage(pos.coverages_2[idx2 - 1])
                 record1 = self._adjustment(pos1)
                 record2 = self._adjustment(pos2)
                 assert len(glyphs1) == 1
                 assert len(glyphs2) == 1
-                pairpos = ast.PairPosStatement(glyphs1[0], record1, glyphs2[0],
-                                               record2)
-                if prefix or suffix:
-                    if sublookup is None:
-                        subname = self._lookupName(lookup.name) + "_sub"
-                        sublookup = ast.LookupBlock(subname)
-                        statements.append(sublookup)
-                    sublookup.statements.append(pairpos)
-                    glyphs = (glyphs1[0], glyphs2[0])
-                    lookups = (sublookup, sublookup)
-                    ctxtpos = ast.ChainContextPosStatement(prefix, glyphs, suffix, lookups)
-                    statements.append(ctxtpos)
-                else:
-                    statements.append(pairpos)
+                statements.append(ast.PairPosStatement(
+                    glyphs1[0], record1, glyphs2[0], record2))
         elif isinstance(pos, VoltAst.PositionAdjustSingleDefinition):
             for a, b in pos.adjust_single:
                 glyphs = self._coverage(a)
                 record = self._adjustment(b)
                 assert len(glyphs) == 1
                 statements.append(ast.SinglePosStatement(
-                    list(zip(glyphs, [record])), prefix, suffix, False))
+                    [(glyphs[0], record)], [], [], False))
         elif isinstance(pos, VoltAst.PositionAttachDefinition):
-           #assert not prefix
-           #assert not suffix
             for glyphs, mark in pos.coverage_to:
                 for glyph in glyphs:
                     for name in glyph.glyphSet():
@@ -308,6 +284,43 @@ class VtpToFea:
                 for base in pos.coverage:
                     for name in base.glyphSet():
                         statements.append(self._anchors[name][mark])
+        else:
+            assert False, "%s is not handled" % pos
+
+    def _gposContextLookup(self, lookup, prefix, suffix, ignore, fealookup,
+                           sublookup):
+        statements = fealookup.statements
+
+        # FIXME
+        assert not ignore
+
+        pos = lookup.pos
+        if isinstance(pos, VoltAst.PositionAdjustPairDefinition):
+            for (idx1, idx2), (pos1, pos2) in pos.adjust_pair.items():
+                glyphs1 = self._coverage(pos.coverages_1[idx1 - 1])
+                glyphs2 = self._coverage(pos.coverages_2[idx2 - 1])
+                record1 = self._adjustment(pos1)
+                record2 = self._adjustment(pos2)
+                assert len(glyphs1) == 1
+                assert len(glyphs2) == 1
+                glyphs = (glyphs1[0], glyphs2[0])
+                lookups = (sublookup, sublookup)
+                statements.append(ast.ChainContextPosStatement(
+                    prefix, glyphs, suffix, lookups))
+        elif isinstance(pos, VoltAst.PositionAdjustSingleDefinition):
+            lookups = [sublookup]
+            glyphs = [ast.GlyphClass()]
+            for a, b in pos.adjust_single:
+                glyph = self._coverage(a)
+                record = self._adjustment(b)
+                glyphs[0].extend(glyph)
+            statements.append(ast.ChainContextPosStatement(
+                prefix, glyphs, suffix, lookups))
+        elif isinstance(pos, VoltAst.PositionAttachDefinition):
+            lookups = [sublookup]
+            glyphs = [ast.GlyphClass(self._coverage(pos.coverage))]
+            statements.append(ast.ChainContextPosStatement(
+                prefix, glyphs, suffix, lookups))
         else:
             assert False, "%s is not handled" % pos
 
@@ -354,7 +367,16 @@ class VtpToFea:
                 self._gsubLookup(lookup, prefix, suffix, ignore, fealookup)
 
             if lookup.pos is not None:
-                self._gposLookup(lookup, prefix, suffix, ignore, fealookup)
+                if prefix or suffix or ignore:
+                    if not ignore:
+                        subname = self._lookupName(lookup.name) + "_sub"
+                        sublookup = ast.LookupBlock(subname)
+                        fealookup.statements.append(sublookup)
+                        self._gposLookup(lookup, sublookup)
+                    self._gposContextLookup(lookup, prefix, suffix, ignore,
+                                            fealookup, sublookup)
+                else:
+                    self._gposLookup(lookup, fealookup)
 
         self._lookups[lookup.name.lower()] = fealookup
 
