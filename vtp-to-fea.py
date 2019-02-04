@@ -9,8 +9,8 @@ from fontTools.voltLib.parser import Parser as VoltParser
 
 
 class VtpToFea:
-    _LOOKUP_NAME_START_RE = re.compile(r"[A-Za-z_+*:.\^~!\\]")
-    _NOT_LOOKUP_NAME_RE = re.compile(r"[^A-Za-z0-9_.+*:\^~!/-]")
+    _LOOKUP_NAME_START_RE = re.compile(r"[A-Za-z_*:.\^~!\\]")
+    _NOT_LOOKUP_NAME_RE = re.compile(r"[^A-Za-z0-9_.*:\^~!/]")
     _NOT_CLASS_NAME_RE = re.compile(r"[^A-Za-z_0-9.]")
 
     def __init__(self, filename):
