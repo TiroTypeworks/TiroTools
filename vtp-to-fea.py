@@ -362,6 +362,7 @@ class VtpToFea:
         else:
             contexts.append([[], [], False])
 
+        statements = []
         for prefix, suffix, ignore in contexts:
             if lookup.sub is not None:
                 self._gsubLookup(lookup, prefix, suffix, ignore, fealookup)
@@ -371,7 +372,7 @@ class VtpToFea:
                     if not ignore:
                         subname = self._lookupName(lookup.name) + "_sub"
                         sublookup = ast.LookupBlock(subname)
-                        fealookup.statements.append(sublookup)
+                        statements.append(sublookup)
                         self._gposLookup(lookup, sublookup)
                     self._gposContextLookup(lookup, prefix, suffix, ignore,
                                             fealookup, sublookup)
@@ -380,7 +381,6 @@ class VtpToFea:
 
         self._lookups[lookup.name.lower()] = fealookup
 
-        statements = []
         if lookup.comments is not None:
             statements.append(ast.Comment(lookup.comments))
         statements.append(fealookup)
