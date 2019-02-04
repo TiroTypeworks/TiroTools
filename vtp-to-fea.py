@@ -227,34 +227,6 @@ class VtpToFea:
             self._anchors[glyphname] = {}
         self._anchors[glyphname][anchordef.name] = mark
 
-    def _gsubLookup(self, lookup, prefix, suffix, ignore, fealookup):
-        statements = fealookup.statements
-
-        sub = lookup.sub
-        for key, val in sub.mapping.items():
-            subst = None
-            glyphs = self._coverage(key)
-            replacement = self._coverage(val)
-            if ignore:
-                chain_context = (prefix, glyphs, suffix)
-                subst = ast.IgnoreSubstStatement([chain_context])
-            elif isinstance(sub, VoltAst.SubstitutionSingleDefinition):
-                assert(len(glyphs) == 1)
-                assert(len(replacement) == 1)
-                subst = ast.SingleSubstStatement(glyphs, replacement,
-                            prefix, suffix, False)
-            elif isinstance(sub, VoltAst.SubstitutionMultipleDefinition):
-                assert(len(glyphs) == 1)
-                subst = ast.MultipleSubstStatement(prefix, glyphs[0], suffix,
-                            replacement)
-            elif isinstance(sub, VoltAst.SubstitutionLigatureDefinition):
-                assert(len(replacement) == 1)
-                subst = ast.LigatureSubstStatement(prefix, glyphs,
-                            suffix, replacement[0], False)
-            else:
-                assert False, "%s is not handled" % sub
-            statements.append(subst)
-
     def _gposLookup(self, lookup, fealookup):
         statements = fealookup.statements
 
@@ -323,6 +295,34 @@ class VtpToFea:
                 prefix, glyphs, suffix, lookups))
         else:
             assert False, "%s is not handled" % pos
+
+    def _gsubLookup(self, lookup, prefix, suffix, ignore, fealookup):
+        statements = fealookup.statements
+
+        sub = lookup.sub
+        for key, val in sub.mapping.items():
+            subst = None
+            glyphs = self._coverage(key)
+            replacement = self._coverage(val)
+            if ignore:
+                chain_context = (prefix, glyphs, suffix)
+                subst = ast.IgnoreSubstStatement([chain_context])
+            elif isinstance(sub, VoltAst.SubstitutionSingleDefinition):
+                assert(len(glyphs) == 1)
+                assert(len(replacement) == 1)
+                subst = ast.SingleSubstStatement(glyphs, replacement,
+                            prefix, suffix, False)
+            elif isinstance(sub, VoltAst.SubstitutionMultipleDefinition):
+                assert(len(glyphs) == 1)
+                subst = ast.MultipleSubstStatement(prefix, glyphs[0], suffix,
+                            replacement)
+            elif isinstance(sub, VoltAst.SubstitutionLigatureDefinition):
+                assert(len(replacement) == 1)
+                subst = ast.LigatureSubstStatement(prefix, glyphs,
+                            suffix, replacement[0], False)
+            else:
+                assert False, "%s is not handled" % sub
+            statements.append(subst)
 
     def _lookupDefinition(self, lookup):
         mark_attachement = None
