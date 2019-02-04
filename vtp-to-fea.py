@@ -24,6 +24,9 @@ class VtpToFea:
         self._features = {}
         self._lookups = {}
 
+        self._marks = set()
+        self._ligatures = set()
+
         self._mark_classes = {}
         self._anchors = {}
 
@@ -167,7 +170,12 @@ class VtpToFea:
 
         if glyph.type not in self._gdef:
             self._gdef[glyph.type] = ast.GlyphClass()
-        self._gdef[glyph.type].glyphs.append(glyph.name)
+        self._gdef[glyph.type].glyphs.append(self._glyphName(glyph.name))
+
+        if glyph.type == "MARK":
+            self._marks.add(glyph.name)
+        elif glyph.type == "LIGATURE":
+            self._ligatures.add(glyph.name)
 
     def _scriptDefinition(self, script):
         for lang in script.langs:
@@ -214,9 +222,9 @@ class VtpToFea:
         if anchordef.name.startswith("MARK_"):
             mark = ast.MarkClassDefinition(markclass, anchor, glyphs)
         else:
-            if "MARK" in self._gdef and glyphname in self._gdef["MARK"].glyphSet():
+            if glyphname in self._marks:
                 mark = ast.MarkMarkPosStatement(glyphs, [(anchor, markclass)])
-            elif "LIGATURE" in self._gdef and glyphname in self._gdef["LIGATURE"].glyphSet():
+            elif glyphname in self._ligatures:
                 # FIXME
                 assert False
                 #mark = ast.MarkLigPosStatement(glyphs, ())
