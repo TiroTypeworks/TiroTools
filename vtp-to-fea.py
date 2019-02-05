@@ -1,5 +1,6 @@
 import re
 
+from collections import OrderedDict
 from tempfile import NamedTemporaryFile
 
 from fontTools.ttLib import TTFont
@@ -21,7 +22,7 @@ class VtpToFea:
 
         self._gdef = {}
         self._groups = {}
-        self._features = {}
+        self._features = OrderedDict()
         self._lookups = {}
 
         self._marks = set()
@@ -181,9 +182,9 @@ class VtpToFea:
         for lang in script.langs:
             for feature in lang.features:
                 if feature.tag not in self._features:
-                    self._features[feature.tag] = {}
+                    self._features[feature.tag] = OrderedDict()
                 if script.tag not in self._features[feature.tag]:
-                    self._features[feature.tag][script.tag] = {}
+                    self._features[feature.tag][script.tag] = OrderedDict()
                 assert lang.tag not in self._features[feature.tag][script.tag]
                 self._features[feature.tag][script.tag][lang.tag] = feature.lookups
 
