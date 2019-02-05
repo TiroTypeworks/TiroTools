@@ -244,14 +244,25 @@ class VtpToFea:
         pos = lookup.pos
         if isinstance(pos, VoltAst.PositionAdjustPairDefinition):
             for (idx1, idx2), (pos1, pos2) in pos.adjust_pair.items():
-                glyphs1 = self._coverage(pos.coverages_1[idx1 - 1])
-                glyphs2 = self._coverage(pos.coverages_2[idx2 - 1])
+                coverage_1 = pos.coverages_1[idx1 - 1]
+                coverage_2 = pos.coverages_2[idx2 - 1]
+
+                # If not both are groups, use “enum pos” otherwise makeotf will
+                # fail.
+                enumerated = False
+                for item in coverage_1 + coverage_2:
+                    if not isinstance(item, VoltAst.GroupName):
+                        enumerated = True
+
+                glyphs1 = self._coverage(coverage_1)
+                glyphs2 = self._coverage(coverage_2)
                 record1 = self._adjustment(pos1)
                 record2 = self._adjustment(pos2)
                 assert len(glyphs1) == 1
                 assert len(glyphs2) == 1
                 statements.append(ast.PairPosStatement(
-                    glyphs1[0], record1, glyphs2[0], record2))
+                    glyphs1[0], record1, glyphs2[0], record2,
+                    enumerated=enumerated))
         elif isinstance(pos, VoltAst.PositionAdjustSingleDefinition):
             for a, b in pos.adjust_single:
                 glyphs = self._coverage(a)
