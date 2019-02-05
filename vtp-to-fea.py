@@ -91,8 +91,10 @@ class VtpToFea:
 
         for ftag, scripts in self._features.items():
             feature = ast.FeatureBlock(ftag)
-            for stag, langs in scripts.items():
+            stags = sorted(scripts, key=lambda k: 0 if k == "DFLT" else 1)
+            for stag in stags:
                 script = ast.ScriptStatement(stag)
+                langs = scripts[stag]
                 feature.statements.append(script)
                 for ltag, lookups in langs.items():
                     lang = ast.LanguageStatement(ltag)
