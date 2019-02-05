@@ -384,6 +384,7 @@ class VtpToFea:
         else:
             contexts.append([[], [], False])
 
+        sublookup = None
         statements = []
         for prefix, suffix, ignore in contexts:
             if lookup.sub is not None:
@@ -391,7 +392,7 @@ class VtpToFea:
 
             if lookup.pos is not None:
                 if prefix or suffix or ignore:
-                    if not ignore:
+                    if not ignore and sublookup is None:
                         subname = self._lookupName(lookup.name) + "_sub"
                         sublookup = ast.LookupBlock(subname)
                         statements.append(sublookup)
