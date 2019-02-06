@@ -29,6 +29,7 @@ class VtpToFea:
         self._ligatures = set()
 
         self._mark_classes = {}
+        self._mark_class_defs = []
         self._anchors = {}
 
     def _lookupName(self, name):
@@ -61,12 +62,13 @@ class VtpToFea:
             self._glyph_order = font.getGlyphOrder()
 
         fea = ast.FeatureFile()
+        statements = fea.statements
 
         for statement in volt_doc.statements:
             if isinstance(statement, VoltAst.GlyphDefinition):
                 self._glyphDefinition(statement)
             elif isinstance(statement, VoltAst.AnchorDefinition):
-                self._anchorDefinition(statement)
+                statements.extend(self._anchorDefinition(statement))
 
         for statement in volt_doc.statements:
             ret = None
@@ -213,6 +215,8 @@ class VtpToFea:
         anchor = self._anchor(anchordef.pos)
         glyphs = ast.GlyphClass([self._glyphName(glyphname)])
 
+        ret = []
+
         name = anchordef.name
         if name.startswith("MARK_"):
             name = "_".join(anchordef.name.split("_")[1:])
@@ -221,10 +225,10 @@ class VtpToFea:
             self._mark_classes[name] = ast.MarkClass(self._className(name))
         markclass = self._mark_classes[name]
 
-        mark = None
         if anchordef.name.startswith("MARK_"):
-            mark = ast.MarkClassDefinition(markclass, anchor, glyphs)
+            ret.append(ast.MarkClassDefinition(markclass, anchor, glyphs))
         else:
+            mark = None
             if glyphname in self._marks:
                 mark = ast.MarkMarkPosStatement(glyphs, [(anchor, markclass)])
             elif glyphname in self._ligatures:
@@ -234,9 +238,11 @@ class VtpToFea:
             else:
                 mark = ast.MarkBasePosStatement(glyphs, [(anchor, markclass)])
 
-        if glyphname not in self._anchors:
-            self._anchors[glyphname] = {}
-        self._anchors[glyphname][anchordef.name] = mark
+            if glyphname not in self._anchors:
+                self._anchors[glyphname] = {}
+            self._anchors[glyphname][anchordef.name] = mark
+
+        return ret
 
     def _gposLookup(self, lookup, fealookup):
         statements = fealookup.statements
@@ -271,10 +277,7 @@ class VtpToFea:
                 statements.append(ast.SinglePosStatement(
                     [(glyphs[0], record)], [], [], False))
         elif isinstance(pos, VoltAst.PositionAttachDefinition):
-            for glyphs, mark in pos.coverage_to:
-                for glyph in glyphs:
-                    for name in glyph.glyphSet():
-                        statements.append(self._anchors[name]["MARK_" + mark])
+            for _, mark in pos.coverage_to:
                 for base in pos.coverage:
                     for name in base.glyphSet():
                         statements.append(self._anchors[name][mark])
