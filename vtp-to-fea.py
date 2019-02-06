@@ -71,7 +71,6 @@ class VtpToFea:
                 statements.extend(self._anchorDefinition(statement))
 
         for statement in volt_doc.statements:
-            ret = None
             if isinstance(statement, VoltAst.GlyphDefinition):
                 # Handled above
                 pass
@@ -82,14 +81,13 @@ class VtpToFea:
                 # Nothing here can be written to feature files.
                 pass
             elif isinstance(statement, VoltAst.ScriptDefinition):
-                ret = self._scriptDefinition(statement)
+                self._scriptDefinition(statement)
             elif isinstance(statement, VoltAst.GroupDefinition):
-                ret = self._groupDefinition(statement)
+                statements.append(self._groupDefinition(statement))
             elif isinstance(statement, VoltAst.LookupDefinition):
-                ret = self._lookupDefinition(statement)
+                statements.extend(self._lookupDefinition(statement))
             else:
                 assert False, "%s is not handled" % statement
-            fea.statements.extend(ret if ret else [])
 
         for ftag, scripts in self._features.items():
             feature = ast.FeatureBlock(ftag)
@@ -105,7 +103,7 @@ class VtpToFea:
                         lookup = self._lookups[name.lower()]
                         lookupref = ast.LookupReferenceStatement(lookup)
                         feature.statements.append(lookupref)
-            fea.statements.append(feature)
+            statements.append(feature)
 
         if self._gdef:
             gdef = ast.TableBlock("GDEF")
@@ -115,7 +113,7 @@ class VtpToFea:
                                            self._gdef.get("LIGATURE"),
                                            self._gdef.get("COMPONENT")))
 
-            fea.statements.append(gdef)
+            statements.append(gdef)
 
         with open(path, "w") as feafile:
             feafile.write(fea.asFea())
@@ -165,7 +163,7 @@ class VtpToFea:
         glyphclass = ast.GlyphClassDefinition(name, glyphs)
 
         self._groups[group.name.lower()] = glyphclass
-        return [glyphclass]
+        return glyphclass
 
     def _glyphDefinition(self, glyph):
         try:
