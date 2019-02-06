@@ -171,14 +171,18 @@ class VtpToFea:
         except TypeError:
             self._glyph_map[glyph.name] = glyph.name
 
-        if glyph.type not in self._gdef:
-            self._gdef[glyph.type] = ast.GlyphClass()
-        self._gdef[glyph.type].glyphs.append(self._glyphName(glyph.name))
+        # Add glyph to GDEF table, skipping GID 0 as makeotf will fail
+        # otherwise:
+        # https://github.com/adobe-type-tools/afdko/issues/726
+        if glyph.id != 0:
+            if glyph.type not in self._gdef:
+                self._gdef[glyph.type] = ast.GlyphClass()
+            self._gdef[glyph.type].glyphs.append(self._glyphName(glyph.name))
 
-        if glyph.type == "MARK":
-            self._marks.add(glyph.name)
-        elif glyph.type == "LIGATURE":
-            self._ligatures.add(glyph.name)
+            if glyph.type == "MARK":
+                self._marks.add(glyph.name)
+            elif glyph.type == "LIGATURE":
+                self._ligatures.add(glyph.name)
 
     def _scriptDefinition(self, script):
         for lang in script.langs:
