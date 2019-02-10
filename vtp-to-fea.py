@@ -211,7 +211,7 @@ class VtpToFea:
     def _anchorDefinition(self, anchordef):
         glyphname = anchordef.glyph_name
         anchor = self._anchor(anchordef.pos)
-        glyphs = ast.GlyphClass([self._glyphName(glyphname)])
+        glyph = self._glyphName(glyphname)
 
         ret = []
 
@@ -224,17 +224,17 @@ class VtpToFea:
         markclass = self._mark_classes[name]
 
         if anchordef.name.startswith("MARK_"):
-            ret.append(ast.MarkClassDefinition(markclass, anchor, glyphs))
+            ret.append(ast.MarkClassDefinition(markclass, anchor, glyph))
         else:
             mark = None
             if glyphname in self._marks:
-                mark = ast.MarkMarkPosStatement(glyphs, [(anchor, markclass)])
+                mark = ast.MarkMarkPosStatement(glyph, [(anchor, markclass)])
             elif glyphname in self._ligatures:
                 # FIXME
                 assert False
-                #mark = ast.MarkLigPosStatement(glyphs, ())
+                #mark = ast.MarkLigPosStatement(glyph, ())
             else:
-                mark = ast.MarkBasePosStatement(glyphs, [(anchor, markclass)])
+                mark = ast.MarkBasePosStatement(glyph, [(anchor, markclass)])
 
             if glyphname not in self._anchors:
                 self._anchors[glyphname] = {}
