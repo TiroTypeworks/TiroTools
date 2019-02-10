@@ -209,38 +209,26 @@ class VtpToFea:
         return ast.Anchor(dx or 0, dy or 0)
 
     def _anchorDefinition(self, anchordef):
-        glyphname = anchordef.glyph_name
-        anchor = self._anchor(anchordef.pos)
-        glyph = self._glyphName(glyphname)
-
-        ret = []
-
         name = anchordef.name
-        if name.startswith("MARK_"):
+        if anchordef.name.startswith("MARK_"):
             name = "_".join(anchordef.name.split("_")[1:])
 
         if name not in self._mark_classes:
             self._mark_classes[name] = ast.MarkClass(self._className(name))
         markclass = self._mark_classes[name]
 
-        if anchordef.name.startswith("MARK_"):
-            ret.append(ast.MarkClassDefinition(markclass, anchor, glyph))
-        else:
-            mark = None
-            if glyphname in self._marks:
-                mark = ast.MarkMarkPosStatement(glyph, [(anchor, markclass)])
-            elif glyphname in self._ligatures:
-                # FIXME
-                assert False
-                #mark = ast.MarkLigPosStatement(glyph, ())
-            else:
-                mark = ast.MarkBasePosStatement(glyph, [(anchor, markclass)])
+        glyphname = anchordef.glyph_name
+        anchor = self._anchor(anchordef.pos)
 
+        if anchordef.name.startswith("MARK_"):
+            glyph = self._glyphName(glyphname)
+            return [ast.MarkClassDefinition(markclass, anchor, glyph)]
+        else:
             if glyphname not in self._anchors:
                 self._anchors[glyphname] = {}
-            self._anchors[glyphname][anchordef.name] = mark
+            self._anchors[glyphname][anchordef.name] = anchor
 
-        return ret
+        return []
 
     def _gposLookup(self, lookup, fealookup):
         statements = fealookup.statements
@@ -275,10 +263,33 @@ class VtpToFea:
                 statements.append(ast.SinglePosStatement(
                     [(glyphs[0], record)], [], [], False))
         elif isinstance(pos, VoltAst.PositionAttachDefinition):
+            anchors = {}
             for _, mark in pos.coverage_to:
+                markclass = self._mark_classes[mark]
                 for base in pos.coverage:
                     for name in base.glyphSet():
-                        statements.append(self._anchors[name][mark])
+                        if name not in anchors:
+                            anchors[name] = []
+                        if mark not in anchors[name]:
+                            anchors[name].append(mark)
+
+            for name in anchors:
+                marks = []
+                for mark in anchors[name]:
+                    markclass = self._mark_classes[mark]
+                    anchor = self._anchors[name][mark]
+                    marks.append((anchor, markclass))
+
+                base = self._glyphName(name)
+                if name in self._marks:
+                    mark = ast.MarkMarkPosStatement(base, marks)
+                elif name in self._ligatures:
+                    # FIXME
+                    assert False
+                    #mark = ast.MarkLigPosStatement(base, ())
+                else:
+                    mark = ast.MarkBasePosStatement(base, marks)
+                statements.append(mark)
         else:
             assert False, "%s is not handled" % pos
 
