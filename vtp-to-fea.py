@@ -323,7 +323,9 @@ class VtpToFea:
                 prefix, glyphs, suffix, lookups))
         elif isinstance(pos, VoltAst.PositionAttachDefinition):
             lookups = [sublookup]
-            glyphs = [ast.GlyphClass(self._coverage(pos.coverage))]
+            glyphs = [ast.GlyphClass()]
+            for coverage, _ in pos.coverage_to:
+                glyphs[0].extend(self._coverage(coverage))
             statements.append(ast.ChainContextPosStatement(
                 prefix, glyphs, suffix, lookups))
         else:
