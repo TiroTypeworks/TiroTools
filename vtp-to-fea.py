@@ -31,10 +31,13 @@ class VtpToFea:
         self._mark_class_defs = []
         self._anchors = {}
 
-    def _lookupName(self, name):
+    def _lookupName(self, name, suffix=""):
+        # FIXME: make sure sanitized name is unique.
+        name = name + suffix
         return self._NOT_LOOKUP_NAME_RE.sub("_", name)
 
     def _className(self, name):
+        # FIXME: make sure sanitized name is unique.
         return self._NOT_CLASS_NAME_RE.sub("_", name)
 
     def _parse(self, filename):
@@ -401,7 +404,7 @@ class VtpToFea:
             if lookup.pos is not None:
                 if prefix or suffix or ignore:
                     if not ignore and sublookup is None:
-                        subname = self._lookupName(lookup.name) + "_sub"
+                        subname = self._lookupName(lookup.name, " sub")
                         sublookup = ast.LookupBlock(subname)
                         statements.append(sublookup)
                         self._gposLookup(lookup, sublookup)
