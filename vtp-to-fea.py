@@ -84,10 +84,16 @@ class VtpToFea:
             if isinstance(statement, VoltAst.LookupDefinition):
                 self._lookupDefinition(statement)
 
+        statements.append(ast.Comment("# Mark classes"))
         statements.extend(self._markclasses.values())
+
+        statements.append(ast.Comment("\n# Glyph classes"))
         statements.extend(self._glyphclasses.values())
+
+        statements.append(ast.Comment("\n# Lookups"))
         statements.extend(self._lookups.values())
 
+        statements.append(ast.Comment("# Features"))
         for ftag, scripts in self._features.items():
             feature = ast.FeatureBlock(ftag)
             stags = sorted(scripts, key=lambda k: 0 if k == "DFLT" else 1)
