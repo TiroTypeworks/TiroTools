@@ -20,7 +20,7 @@ class VtpToFea:
         self._glyph_order = None
 
         self._gdef = {}
-        self._groups = {}
+        self._glyphclasses = OrderedDict()
         self._features = OrderedDict()
         self._lookups = {}
 
@@ -71,8 +71,11 @@ class VtpToFea:
                 self._anchorDefinition(statement)
             elif isinstance(statement, VoltAst.SettingDefinition):
                 self._settingDefinition(statement)
+            elif isinstance(statement, VoltAst.GroupDefinition):
+                self._groupDefinition(statement)
 
         statements.extend(self._markclasses.values())
+        statements.extend(self._glyphclasses.values())
 
         for statement in volt_doc.statements:
             if isinstance(statement, VoltAst.GlyphDefinition):
@@ -84,10 +87,11 @@ class VtpToFea:
             elif isinstance(statement, VoltAst.SettingDefinition):
                 # Handled above
                 pass
+            elif isinstance(statement, VoltAst.GroupDefinition):
+                # Handled above
+                pass
             elif isinstance(statement, VoltAst.ScriptDefinition):
                 self._scriptDefinition(statement)
-            elif isinstance(statement, VoltAst.GroupDefinition):
-                statements.append(self._groupDefinition(statement))
             elif isinstance(statement, VoltAst.LookupDefinition):
                 statements.extend(self._lookupDefinition(statement))
             else:
@@ -134,7 +138,7 @@ class VtpToFea:
             name = group.group
         except AttributeError:
             name = group
-        return ast.GlyphClassName(self._groups[name.lower()])
+        return ast.GlyphClassName(self._glyphclasses[name.lower()])
 
     def _coverage(self, coverage):
         items = []
@@ -166,8 +170,7 @@ class VtpToFea:
         glyphs = self._enum(group.enum)
         glyphclass = ast.GlyphClassDefinition(name, glyphs)
 
-        self._groups[group.name.lower()] = glyphclass
-        return glyphclass
+        self._glyphclasses[group.name.lower()] = glyphclass
 
     def _glyphDefinition(self, glyph):
         try:
