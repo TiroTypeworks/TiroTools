@@ -27,8 +27,6 @@ class VtpToFea:
         self._marks = set()
         self._ligatures = set()
 
-        self._mark_classes = {}
-        self._mark_class_defs = []
         self._anchors = {}
 
         self._settings = {}
@@ -216,18 +214,12 @@ class VtpToFea:
         return ast.Anchor(dx or 0, dy or 0)
 
     def _anchorDefinition(self, anchordef):
-        name = anchordef.name
-        if anchordef.name.startswith("MARK_"):
-            name = "_".join(anchordef.name.split("_")[1:])
-
-        if name not in self._mark_classes:
-            self._mark_classes[name] = ast.MarkClass(self._className(name))
-        markclass = self._mark_classes[name]
-
         glyphname = anchordef.glyph_name
         anchor = self._anchor(anchordef.pos)
 
         if anchordef.name.startswith("MARK_"):
+            name = "_".join(anchordef.name.split("_")[1:])
+            markclass = ast.MarkClass(self._className(name))
             glyph = self._glyphName(glyphname)
             return [ast.MarkClassDefinition(markclass, anchor, glyph)]
         else:
@@ -272,7 +264,7 @@ class VtpToFea:
         elif isinstance(pos, VoltAst.PositionAttachDefinition):
             anchors = {}
             for _, mark in pos.coverage_to:
-                markclass = self._mark_classes[mark]
+                markclass = ast.MarkClass(self._className(mark))
                 for base in pos.coverage:
                     for name in base.glyphSet():
                         if name not in anchors:
@@ -283,7 +275,7 @@ class VtpToFea:
             for name in anchors:
                 marks = []
                 for mark in anchors[name]:
-                    markclass = self._mark_classes[mark]
+                    markclass = ast.MarkClass(self._className(mark))
                     anchor = self._anchors[name][mark]
                     marks.append((anchor, markclass))
 
