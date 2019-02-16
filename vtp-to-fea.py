@@ -31,6 +31,8 @@ class VtpToFea:
         self._mark_class_defs = []
         self._anchors = {}
 
+        self._settings = {}
+
     def _lookupName(self, name, suffix=""):
         # FIXME: make sure sanitized name is unique.
         name = name + suffix
@@ -68,6 +70,8 @@ class VtpToFea:
                 self._glyphDefinition(statement)
             elif isinstance(statement, VoltAst.AnchorDefinition):
                 statements.extend(self._anchorDefinition(statement))
+            elif isinstance(statement, VoltAst.SettingDefinition):
+                self._settingDefinition(statement)
 
         for statement in volt_doc.statements:
             if isinstance(statement, VoltAst.GlyphDefinition):
@@ -77,7 +81,7 @@ class VtpToFea:
                 # Handled above
                 pass
             elif isinstance(statement, VoltAst.SettingDefinition):
-                # Nothing here can be written to feature files.
+                # Handled above
                 pass
             elif isinstance(statement, VoltAst.ScriptDefinition):
                 self._scriptDefinition(statement)
@@ -188,6 +192,10 @@ class VtpToFea:
                     self._features[feature.tag][script.tag] = OrderedDict()
                 assert lang.tag not in self._features[feature.tag][script.tag]
                 self._features[feature.tag][script.tag][lang.tag] = feature.lookups
+
+    def _settingDefinition(self, setting):
+        if setting.name.startswith("COMPILER_"):
+            self._settings[setting.name] = setting.value
 
     def _adjustment(self, adjustment):
         adv, dx, dy, adv_adjust_by, dx_adjust_by, dy_adjust_by = adjustment
@@ -404,6 +412,8 @@ class VtpToFea:
                 self._gsubLookup(lookup, prefix, suffix, ignore, fealookup)
 
             if lookup.pos is not None:
+                if self._settings.get("COMPILER_USEEXTENSIONLOOKUPS"):
+                    fealookup.use_extension = True
                 if prefix or suffix or ignore:
                     if not ignore and sublookup is None:
                         subname = self._lookupName(lookup.name, " sub")
