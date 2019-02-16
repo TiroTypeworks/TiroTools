@@ -27,7 +27,8 @@ class VtpToFea:
         self._marks = set()
         self._ligatures = set()
 
-        self._markclasses = OrderedDict()
+        self._markclasses = {}
+        self._markdefs = {}
         self._anchors = {}
 
         self._settings = {}
@@ -88,7 +89,7 @@ class VtpToFea:
         statements.extend(self._glyphclasses.values())
 
         statements.append(ast.Comment("\n# Mark classes"))
-        statements.extend(self._markclasses.values())
+        statements.extend(c[1] for c in sorted(self._markdefs.items()))
 
         statements.append(ast.Comment("\n# Lookups"))
         statements.extend(self._lookups.values())
@@ -265,14 +266,23 @@ class VtpToFea:
                     [(glyphs[0], record)], [], [], False))
         elif isinstance(pos, VoltAst.PositionAttachDefinition):
             anchors = {}
-            for _, mark in pos.coverage_to:
-                markclass = ast.MarkClass(self._className(mark))
+            for marks, classname in pos.coverage_to:
+                for mark in marks:
+                    # Collect actually used mark classes. Basically a hack to
+                    # get around the feature file syntax limitation of making
+                    # mark classes global and not allowing mark positioning to
+                    # specify mark coverage..
+                    for name in mark.glyphSet():
+                        key = (name, "MARK_" + classname)
+                        if key not in self._markdefs:
+                            self._markdefs[key] = self._markclasses[key]
+                markclass = ast.MarkClass(self._className(classname))
                 for base in pos.coverage:
                     for name in base.glyphSet():
                         if name not in anchors:
                             anchors[name] = []
-                        if mark not in anchors[name]:
-                            anchors[name].append(mark)
+                        if classname not in anchors[name]:
+                            anchors[name].append(classname)
 
             for name in anchors:
                 marks = []
