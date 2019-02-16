@@ -22,7 +22,7 @@ class VtpToFea:
         self._gdef = {}
         self._glyphclasses = OrderedDict()
         self._features = OrderedDict()
-        self._lookups = {}
+        self._lookups = OrderedDict()
 
         self._marks = set()
         self._ligatures = set()
@@ -74,9 +74,6 @@ class VtpToFea:
             elif isinstance(statement, VoltAst.GroupDefinition):
                 self._groupDefinition(statement)
 
-        statements.extend(self._markclasses.values())
-        statements.extend(self._glyphclasses.values())
-
         for statement in volt_doc.statements:
             if isinstance(statement, VoltAst.GlyphDefinition):
                 # Handled above
@@ -93,9 +90,13 @@ class VtpToFea:
             elif isinstance(statement, VoltAst.ScriptDefinition):
                 self._scriptDefinition(statement)
             elif isinstance(statement, VoltAst.LookupDefinition):
-                statements.extend(self._lookupDefinition(statement))
+                self._lookupDefinition(statement)
             else:
                 assert False, "%s is not handled" % statement
+
+        statements.extend(self._markclasses.values())
+        statements.extend(self._glyphclasses.values())
+        statements.extend(self._lookups.values())
 
         for ftag, scripts in self._features.items():
             feature = ast.FeatureBlock(ftag)
@@ -384,6 +385,10 @@ class VtpToFea:
             mark_filtering = self._groupName(lookup.mark_glyph_set)
 
         fealookup = ast.LookupBlock(self._lookupName(lookup.name))
+
+        if lookup.comments is not None:
+            fealookup.statements.append(ast.Comment(lookup.comments))
+
         if flags or mark_attachement is not None or mark_filtering is not None:
             lookupflags = ast.LookupFlagStatement(flags, mark_attachement,
                                                   mark_filtering)
@@ -403,7 +408,6 @@ class VtpToFea:
             contexts.append([[], [], False])
 
         targetlookup = None
-        statements = []
         for prefix, suffix, ignore in contexts:
             if lookup.sub is not None:
                 self._gsubLookup(lookup, prefix, suffix, ignore, fealookup)
@@ -415,7 +419,7 @@ class VtpToFea:
                     if not ignore and targetlookup is None:
                         targetname = self._lookupName(lookup.name, " target")
                         targetlookup = ast.LookupBlock(targetname)
-                        statements.append(targetlookup)
+                        self._lookups[targetname] = targetlookup
                         self._gposLookup(lookup, targetlookup)
                     self._gposContextLookup(lookup, prefix, suffix, ignore,
                                             fealookup, targetlookup)
@@ -423,12 +427,6 @@ class VtpToFea:
                     self._gposLookup(lookup, fealookup)
 
         self._lookups[lookup.name.lower()] = fealookup
-
-        if lookup.comments is not None:
-            statements.append(ast.Comment(lookup.comments))
-        statements.append(fealookup)
-
-        return statements
 
 
 def main(filename, outfilename):
