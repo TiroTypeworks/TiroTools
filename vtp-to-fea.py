@@ -73,26 +73,16 @@ class VtpToFea:
                 self._settingDefinition(statement)
             elif isinstance(statement, VoltAst.GroupDefinition):
                 self._groupDefinition(statement)
-
-        for statement in volt_doc.statements:
-            if isinstance(statement, VoltAst.GlyphDefinition):
-                # Handled above
-                pass
-            elif isinstance(statement, VoltAst.AnchorDefinition):
-                # Handled above
-                pass
-            elif isinstance(statement, VoltAst.SettingDefinition):
-                # Handled above
-                pass
-            elif isinstance(statement, VoltAst.GroupDefinition):
-                # Handled above
-                pass
             elif isinstance(statement, VoltAst.ScriptDefinition):
                 self._scriptDefinition(statement)
-            elif isinstance(statement, VoltAst.LookupDefinition):
-                self._lookupDefinition(statement)
-            else:
+            elif not isinstance(statement, VoltAst.LookupDefinition):
                 assert False, "%s is not handled" % statement
+
+        # Lookup difinitions need to be handled last as they reference glyph
+        # and mark classes that might be defined after them.
+        for statement in volt_doc.statements:
+            if isinstance(statement, VoltAst.LookupDefinition):
+                self._lookupDefinition(statement)
 
         statements.extend(self._markclasses.values())
         statements.extend(self._glyphclasses.values())
