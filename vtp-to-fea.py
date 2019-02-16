@@ -27,6 +27,7 @@ class VtpToFea:
         self._marks = set()
         self._ligatures = set()
 
+        self._markclasses = OrderedDict()
         self._anchors = {}
 
         self._settings = {}
@@ -67,9 +68,11 @@ class VtpToFea:
             if isinstance(statement, VoltAst.GlyphDefinition):
                 self._glyphDefinition(statement)
             elif isinstance(statement, VoltAst.AnchorDefinition):
-                statements.extend(self._anchorDefinition(statement))
+                self._anchorDefinition(statement)
             elif isinstance(statement, VoltAst.SettingDefinition):
                 self._settingDefinition(statement)
+
+        statements.extend(self._markclasses.values())
 
         for statement in volt_doc.statements:
             if isinstance(statement, VoltAst.GlyphDefinition):
@@ -221,13 +224,12 @@ class VtpToFea:
             name = "_".join(anchordef.name.split("_")[1:])
             markclass = ast.MarkClass(self._className(name))
             glyph = self._glyphName(glyphname)
-            return [ast.MarkClassDefinition(markclass, anchor, glyph)]
+            markdef = ast.MarkClassDefinition(markclass, anchor, glyph)
+            self._markclasses[(glyphname, anchordef.name)] = markdef
         else:
             if glyphname not in self._anchors:
                 self._anchors[glyphname] = {}
             self._anchors[glyphname][anchordef.name] = anchor
-
-        return []
 
     def _gposLookup(self, lookup, fealookup):
         statements = fealookup.statements
