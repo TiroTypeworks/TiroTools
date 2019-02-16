@@ -298,7 +298,7 @@ class VtpToFea:
             assert False, "%s is not handled" % pos
 
     def _gposContextLookup(self, lookup, prefix, suffix, ignore, fealookup,
-                           sublookup):
+                           targetlookup):
         statements = fealookup.statements
 
         # FIXME
@@ -314,11 +314,11 @@ class VtpToFea:
                 assert len(glyphs1) == 1
                 assert len(glyphs2) == 1
                 glyphs = (glyphs1[0], glyphs2[0])
-                lookups = (sublookup, sublookup)
+                lookups = (targetlookup, targetlookup)
                 statements.append(ast.ChainContextPosStatement(
                     prefix, glyphs, suffix, lookups))
         elif isinstance(pos, VoltAst.PositionAdjustSingleDefinition):
-            lookups = [sublookup]
+            lookups = [targetlookup]
             glyphs = [ast.GlyphClass()]
             for a, b in pos.adjust_single:
                 glyph = self._coverage(a)
@@ -327,7 +327,7 @@ class VtpToFea:
             statements.append(ast.ChainContextPosStatement(
                 prefix, glyphs, suffix, lookups))
         elif isinstance(pos, VoltAst.PositionAttachDefinition):
-            lookups = [sublookup]
+            lookups = [targetlookup]
             glyphs = [ast.GlyphClass()]
             for coverage, _ in pos.coverage_to:
                 glyphs[0].extend(self._coverage(coverage))
@@ -402,7 +402,7 @@ class VtpToFea:
         else:
             contexts.append([[], [], False])
 
-        sublookup = None
+        targetlookup = None
         statements = []
         for prefix, suffix, ignore in contexts:
             if lookup.sub is not None:
@@ -412,13 +412,13 @@ class VtpToFea:
                 if self._settings.get("COMPILER_USEEXTENSIONLOOKUPS"):
                     fealookup.use_extension = True
                 if prefix or suffix or ignore:
-                    if not ignore and sublookup is None:
-                        subname = self._lookupName(lookup.name, " sub")
-                        sublookup = ast.LookupBlock(subname)
-                        statements.append(sublookup)
-                        self._gposLookup(lookup, sublookup)
+                    if not ignore and targetlookup is None:
+                        targetname = self._lookupName(lookup.name, " target")
+                        targetlookup = ast.LookupBlock(targetname)
+                        statements.append(targetlookup)
+                        self._gposLookup(lookup, targetlookup)
                     self._gposContextLookup(lookup, prefix, suffix, ignore,
-                                            fealookup, sublookup)
+                                            fealookup, targetlookup)
                 else:
                     self._gposLookup(lookup, fealookup)
 
