@@ -84,11 +84,11 @@ class VtpToFea:
             if isinstance(statement, VoltAst.LookupDefinition):
                 self._lookupDefinition(statement)
 
-        statements.append(ast.Comment("# Mark classes"))
-        statements.extend(self._markclasses.values())
-
-        statements.append(ast.Comment("\n# Glyph classes"))
+        statements.append(ast.Comment("# Glyph classes"))
         statements.extend(self._glyphclasses.values())
+
+        statements.append(ast.Comment("\n# Mark classes"))
+        statements.extend(self._markclasses.values())
 
         statements.append(ast.Comment("\n# Lookups"))
         statements.extend(self._lookups.values())
