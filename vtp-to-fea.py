@@ -34,7 +34,7 @@ class VtpToFea:
         self._lookups = OrderedDict()
 
         self._marks = set()
-        self._ligatures = set()
+        self._ligatures = {}
 
         self._markclasses = {}
         self._anchors = {}
@@ -238,7 +238,7 @@ class VtpToFea:
         if glyph.type == "MARK":
             self._marks.add(glyph.name)
         elif glyph.type == "LIGATURE":
-            self._ligatures.add(glyph.name)
+            self._ligatures[glyph.name] = glyph.components
 
     def _scriptDefinition(self, script):
         for lang in script.langs:
@@ -285,7 +285,9 @@ class VtpToFea:
         else:
             if glyphname not in self._anchors:
                 self._anchors[glyphname] = {}
-            self._anchors[glyphname][anchordef.name] = anchor
+            if anchordef.name not in self._anchors[glyphname]:
+                self._anchors[glyphname][anchordef.name] = {}
+            self._anchors[glyphname][anchordef.name][anchordef.component] = anchor
 
     def _gposLookup(self, lookup, fealookup):
         statements = fealookup.statements
@@ -339,21 +341,28 @@ class VtpToFea:
                             anchors[name].append(classname)
 
             for name in anchors:
+                components = 1
+                if name in self._ligatures:
+                    components = self._ligatures[name]
+
                 marks = []
                 for mark in anchors[name]:
                     markclass = ast.MarkClass(self._className(mark))
-                    anchor = self._anchors[name][mark]
-                    marks.append((anchor, markclass))
+                    for component in range(1, components + 1):
+                        if len(marks) < component:
+                            marks.append([])
+                        anchor = None
+                        if component in self._anchors[name][mark]:
+                            anchor = self._anchors[name][mark][component]
+                        marks[component - 1].append((anchor, markclass))
 
                 base = self._glyphName(name)
                 if name in self._marks:
-                    mark = ast.MarkMarkPosStatement(base, marks)
+                    mark = ast.MarkMarkPosStatement(base, marks[0])
                 elif name in self._ligatures:
-                    # FIXME
-                    assert False
-                    #mark = ast.MarkLigPosStatement(base, ())
+                    mark = ast.MarkLigPosStatement(base, marks)
                 else:
-                    mark = ast.MarkBasePosStatement(base, marks)
+                    mark = ast.MarkBasePosStatement(base, marks[0])
                 statements.append(mark)
         else:
             assert False, "%s is not handled" % pos
