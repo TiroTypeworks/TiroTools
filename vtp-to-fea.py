@@ -56,16 +56,8 @@ class VtpToFea:
 
         return parser.parse(), font
 
-    def convert(self, path):
-        volt_doc, font = self._parse(self._filename)
-
-        if font is not None:
-            self._glyph_order = font.getGlyphOrder()
-
-        fea = ast.FeatureFile()
-        statements = fea.statements
-
-        for statement in volt_doc.statements:
+    def _collectStatements(self, doc):
+        for statement in doc.statements:
             if isinstance(statement, VoltAst.GlyphDefinition):
                 self._glyphDefinition(statement)
             elif isinstance(statement, VoltAst.AnchorDefinition):
@@ -81,9 +73,13 @@ class VtpToFea:
 
         # Lookup difinitions need to be handled last as they reference glyph
         # and mark classes that might be defined after them.
-        for statement in volt_doc.statements:
+        for statement in doc.statements:
             if isinstance(statement, VoltAst.LookupDefinition):
                 self._lookupDefinition(statement)
+
+    def _buildFeatureFile(self):
+        doc = ast.FeatureFile()
+        statements = doc.statements
 
         statements.append(ast.Comment("# Glyph classes"))
         statements.extend(self._glyphclasses.values())
@@ -120,6 +116,17 @@ class VtpToFea:
                                            self._gdef.get("COMPONENT")))
 
             statements.append(gdef)
+
+        return doc
+
+    def convert(self, path):
+        doc, font = self._parse(self._filename)
+
+        if font is not None:
+            self._glyph_order = font.getGlyphOrder()
+
+        self._collectStatements(doc)
+        fea = self._buildFeatureFile()
 
         with open(path, "w") as feafile:
             feafile.write(fea.asFea())
