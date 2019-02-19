@@ -79,7 +79,7 @@ class VtpToFea:
             elif not isinstance(statement, VoltAst.LookupDefinition):
                 assert False, "%s is not handled" % statement
 
-        # Lookup difinitions need to be handled last as they reference glyph
+        # Lookup definitions need to be handled last as they reference glyph
         # and mark classes that might be defined after them.
         for statement in doc.statements:
             if isinstance(statement, VoltAst.LookupDefinition):
