@@ -96,7 +96,35 @@ class VtpToFea:
         statements.extend(c[1] for c in sorted(self._markclasses.items()))
 
         statements.append(ast.Comment("\n# Lookups"))
-        statements.extend(self._lookups.values())
+        # Merge sub lookups (lookups named “base\sub”, but only when they are
+        # pairpos lookups as feature files don’t support “subtable” statement
+        # for other lookups.
+        lookups = OrderedDict()
+        for name, lookup in self._lookups.items():
+            if "\\" in name and \
+                    isinstance(lookup.statements[-1], ast.PairPosStatement):
+                base = name.split("\\")[0]
+                if base not in lookups:
+                    lookups[base] = []
+                lookups[base].append(lookup)
+            else:
+                lookups[name] = [lookup]
+
+        for name, sublookups in lookups.items():
+            if len(sublookups) > 1:
+                base = sublookups[0]
+                voltname = getattr(base, "voltname", base.name)
+                base.statements.insert(0, ast.Comment("# " + voltname))
+                base.name = name
+                for sublookup in sublookups[1:]:
+                    sublookup.merged = True
+                    base.statements.append(ast.SubtableStatement())
+                    voltname = getattr(sublookup, "voltname", sublookup.name)
+                    base.statements.append(ast.Comment("# " + voltname))
+                    base.statements.extend(sublookup.statements)
+                statements.append(base)
+            else:
+                statements.extend(sublookups)
 
         statements.append(ast.Comment("# Features"))
         for ftag, scripts in self._features.items():
@@ -111,6 +139,8 @@ class VtpToFea:
                     feature.statements.append(lang)
                     for name in lookups:
                         lookup = self._lookups[name.lower()]
+                        if getattr(lookup, "merged", False):
+                            continue
                         lookupref = ast.LookupReferenceStatement(lookup)
                         feature.statements.append(lookupref)
             statements.append(feature)
@@ -405,6 +435,7 @@ class VtpToFea:
             mark_filtering = self._groupName(lookup.mark_glyph_set)
 
         fealookup = ast.LookupBlock(self._lookupName(lookup.name))
+        fealookup.voltname = lookup.name
 
         if lookup.comments is not None:
             fealookup.statements.append(ast.Comment(lookup.comments))
