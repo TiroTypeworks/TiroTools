@@ -65,7 +65,7 @@ class VtpToFea:
         try:
             font = TTFont(filename)
             if "TSIV" in font:
-                with NamedTemporaryFile(delete=False) as temp:
+                with NamedTemporaryFile() as temp:
                     temp.write(font["TSIV"].data)
                     temp.flush()
                     parser = VoltParser(temp.name)
