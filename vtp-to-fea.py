@@ -202,6 +202,8 @@ class VtpToFea:
                 items.append(self._groupName(item))
             elif isinstance(item, VoltAst.Enum):
                 items.append(self._enum(item))
+            elif isinstance(item, VoltAst.Range):
+                items.append(ast.GlyphClass(item.glyphSet()))
             else:
                 assert False, "%s is not handled" % item
         return items
