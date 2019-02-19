@@ -402,6 +402,8 @@ class VtpToFea:
 
         sub = lookup.sub
         for key, val in sub.mapping.items():
+            if not key or not val:
+                continue
             subst = None
             glyphs = self._coverage(key)
             replacement = self._coverage(val)
