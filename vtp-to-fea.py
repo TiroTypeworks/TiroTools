@@ -41,14 +41,24 @@ class VtpToFea:
 
         self._settings = {}
 
-    def _lookupName(self, name, suffix=""):
-        # FIXME: make sure sanitized name is unique.
-        name = name + suffix
-        return self._NOT_LOOKUP_NAME_RE.sub("_", name)
+        self._lookup_names = {}
+        self._class_names = {}
+
+    def _lookupName(self, name):
+        if name not in self._lookup_names:
+            res = self._NOT_LOOKUP_NAME_RE.sub("_", name)
+            while res in self._lookup_names.values():
+                res += "_"
+            self._lookup_names[name] = res
+        return self._lookup_names[name]
 
     def _className(self, name):
-        # FIXME: make sure sanitized name is unique.
-        return self._NOT_CLASS_NAME_RE.sub("_", name)
+        if name not in self._class_names:
+            res = self._NOT_CLASS_NAME_RE.sub("_", name)
+            while res in self._class_names.values():
+                res += "_"
+            self._class_names[name] = res
+        return self._class_names[name]
 
     def _parse(self, filename):
         font = None
@@ -473,7 +483,7 @@ class VtpToFea:
                     fealookup.use_extension = True
                 if prefix or suffix or ignore:
                     if not ignore and targetlookup is None:
-                        targetname = self._lookupName(lookup.name, " target")
+                        targetname = self._lookupName(lookup.name + " target")
                         targetlookup = ast.LookupBlock(targetname)
                         self._lookups[targetname] = targetlookup
                         self._gposLookup(lookup, targetlookup)
