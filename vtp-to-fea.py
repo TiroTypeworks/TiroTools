@@ -256,21 +256,25 @@ class VtpToFea:
 
     def _adjustment(self, adjustment):
         adv, dx, dy, adv_adjust_by, dx_adjust_by, dy_adjust_by = adjustment
-        # FIXME
-        assert not adv_adjust_by
-        assert not dx_adjust_by
-        assert not dy_adjust_by
+
+        adv_device = adv_adjust_by and adv_adjust_by.items() or None
+        dx_device = dx_adjust_by and dx_adjust_by.items() or None
+        dy_device = dy_adjust_by and dy_adjust_by.items() or None
+
         return ast.ValueRecord(xPlacement=dx, yPlacement=dy, xAdvance=adv,
-                               xPlaDevice=None, yPlaDevice=None,
-                               xAdvDevice=None)
+                               xPlaDevice=dx_device, yPlaDevice=dy_device,
+                               xAdvDevice=adv_device)
 
     def _anchor(self, adjustment):
         adv, dx, dy, adv_adjust_by, dx_adjust_by, dy_adjust_by = adjustment
-        # FIXME
+
         assert not adv_adjust_by
-        assert not dx_adjust_by
-        assert not dy_adjust_by
-        return ast.Anchor(dx or 0, dy or 0)
+        dx_device = dx_adjust_by and dx_adjust_by.items() or None
+        dy_device = dy_adjust_by and dy_adjust_by.items() or None
+
+        return ast.Anchor(dx or 0, dy or 0,
+                          xDeviceTable=dx_device or None,
+                          yDeviceTable=dy_device or None)
 
     def _anchorDefinition(self, anchordef):
         glyphname = anchordef.glyph_name
