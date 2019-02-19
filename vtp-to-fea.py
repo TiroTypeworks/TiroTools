@@ -343,7 +343,7 @@ class VtpToFea:
         else:
             assert False, "%s is not handled" % pos
 
-    def _gsubLookup(self, lookup, prefix, suffix, ignore, fealookup):
+    def _gsubLookup(self, lookup, prefix, suffix, ignore, chain, fealookup):
         statements = fealookup.statements
 
         sub = lookup.sub
@@ -358,15 +358,15 @@ class VtpToFea:
                 assert(len(glyphs) == 1)
                 assert(len(replacement) == 1)
                 subst = ast.SingleSubstStatement(glyphs, replacement,
-                            prefix, suffix, False)
+                            prefix, suffix, chain)
             elif isinstance(sub, VoltAst.SubstitutionMultipleDefinition):
                 assert(len(glyphs) == 1)
                 subst = ast.MultipleSubstStatement(prefix, glyphs[0], suffix,
-                            replacement)
+                            replacement, chain)
             elif isinstance(sub, VoltAst.SubstitutionLigatureDefinition):
                 assert(len(replacement) == 1)
                 subst = ast.LigatureSubstStatement(prefix, glyphs,
-                            suffix, replacement[0], False)
+                            suffix, replacement[0], chain)
             else:
                 assert False, "%s is not handled" % sub
             statements.append(subst)
@@ -409,14 +409,19 @@ class VtpToFea:
                 prefix = self._context(context.left)
                 suffix = self._context(context.right)
                 ignore = context.ex_or_in == "EXCEPT_CONTEXT"
-                contexts.append([prefix, suffix, ignore])
+                contexts.append([prefix, suffix, ignore, False])
+                # It seems that VOLT will create contextual substitution using
+                # only the input if there is no other contexts in this lookup.
+                if ignore and len(lookup.context) == 1:
+                    contexts.append([[], [], False, True])
         else:
-            contexts.append([[], [], False])
+            contexts.append([[], [], False, False])
 
         targetlookup = None
-        for prefix, suffix, ignore in contexts:
+        for prefix, suffix, ignore, chain in contexts:
             if lookup.sub is not None:
-                self._gsubLookup(lookup, prefix, suffix, ignore, fealookup)
+                self._gsubLookup(lookup, prefix, suffix, ignore, chain,
+                                 fealookup)
 
             if lookup.pos is not None:
                 if self._settings.get("COMPILER_USEEXTENSIONLOOKUPS"):
