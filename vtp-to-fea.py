@@ -9,6 +9,15 @@ from fontTools.voltLib import ast as VoltAst
 from fontTools.voltLib.parser import Parser as VoltParser
 
 
+class MarkClassDefinition(ast.MarkClassDefinition):
+    def asFea(self, indent=""):
+        res = ""
+        if not getattr(self, "used", False):
+            res += "#"
+        res += ast.MarkClassDefinition.asFea(self, indent)
+        return res
+
+
 class VtpToFea:
     _NOT_LOOKUP_NAME_RE = re.compile(r"[^A-Za-z_0-9.]")
     _NOT_CLASS_NAME_RE = re.compile(r"[^A-Za-z_0-9.\-]")
@@ -28,7 +37,6 @@ class VtpToFea:
         self._ligatures = set()
 
         self._markclasses = {}
-        self._markdefs = {}
         self._anchors = {}
 
         self._settings = {}
@@ -85,7 +93,7 @@ class VtpToFea:
         statements.extend(self._glyphclasses.values())
 
         statements.append(ast.Comment("\n# Mark classes"))
-        statements.extend(c[1] for c in sorted(self._markdefs.items()))
+        statements.extend(c[1] for c in sorted(self._markclasses.items()))
 
         statements.append(ast.Comment("\n# Lookups"))
         statements.extend(self._lookups.values())
@@ -232,7 +240,7 @@ class VtpToFea:
             name = "_".join(anchordef.name.split("_")[1:])
             markclass = ast.MarkClass(self._className(name))
             glyph = self._glyphName(glyphname)
-            markdef = ast.MarkClassDefinition(markclass, anchor, glyph)
+            markdef = MarkClassDefinition(markclass, anchor, glyph)
             self._markclasses[(glyphname, anchordef.name)] = markdef
         else:
             if glyphname not in self._anchors:
@@ -275,14 +283,13 @@ class VtpToFea:
             anchors = {}
             for marks, classname in pos.coverage_to:
                 for mark in marks:
-                    # Collect actually used mark classes. Basically a hack to
-                    # get around the feature file syntax limitation of making
-                    # mark classes global and not allowing mark positioning to
-                    # specify mark coverage..
+                    # Set actually used mark classes. Basically a hack to get
+                    # around the feature file syntax limitation of making mark
+                    # classes global and not allowing mark positioning to
+                    # specify mark coverage.
                     for name in mark.glyphSet():
                         key = (name, "MARK_" + classname)
-                        if key not in self._markdefs:
-                            self._markdefs[key] = self._markclasses[key]
+                        self._markclasses[key].used = True
                 markclass = ast.MarkClass(self._className(classname))
                 for base in pos.coverage:
                     for name in base.glyphSet():
