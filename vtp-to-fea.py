@@ -364,6 +364,35 @@ class VtpToFea:
                 else:
                     mark = ast.MarkBasePosStatement(base, marks[0])
                 statements.append(mark)
+        elif isinstance(pos, VoltAst.PositionAttachCursiveDefinition):
+            # Collect enter and exit glyphs
+            enter_coverage = []
+            for coverage in pos.coverages_enter:
+                for base in coverage:
+                    for name in base.glyphSet():
+                        enter_coverage.append(name)
+            exit_coverage = []
+            for coverage in pos.coverages_exit:
+                for base in coverage:
+                    for name in base.glyphSet():
+                        exit_coverage.append(name)
+
+            # Write enter anchors, also check if the glyph has exit anchor and
+            # write it, too.
+            for name in enter_coverage:
+                glyph = self._glyphName(name)
+                entry = self._anchors[name]["entry"][1]
+                exit = None
+                if name in exit_coverage:
+                    exit = self._anchors[name]["exit"][1]
+                    exit_coverage.pop(exit_coverage.index(name))
+                statements.append(ast.CursivePosStatement(glyph, entry, exit))
+
+            # Write any remaining exit anchors.
+            for name in exit_coverage:
+                glyph = self._glyphName(name)
+                exit = self._anchors[name]["exit"][1]
+                statements.append(ast.CursivePosStatement(glyph, None, exit))
         else:
             assert False, "%s is not handled" % pos
 
