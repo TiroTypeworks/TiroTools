@@ -592,8 +592,7 @@ def main(args=None):
         if options.traceback:
             raise
         location = getattr(e.args[0], "location", None)
-        item = e.args[1] if len(e.args) > 1 else type(e.args[0]).__name__
-        message = '"%s" is not supported' % item
+        message = '"%s" is not supported' % e
         if location:
             path, line, column = location
             log.error('%s:%d:%d: %s', path, line, column, message)
