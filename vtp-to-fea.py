@@ -1,3 +1,4 @@
+import logging
 import re
 
 from collections import OrderedDict
@@ -7,6 +8,8 @@ from fontTools.ttLib import TTFont
 from fontTools.feaLib import ast
 from fontTools.voltLib import ast as VoltAst
 from fontTools.voltLib.parser import Parser as VoltParser
+
+log = logging.getLogger()
 
 
 class MarkClassDefinition(ast.MarkClassDefinition):
@@ -550,8 +553,13 @@ def main(args=None):
             help="input font/VTP file to process")
     parser.add_argument("featurefile", metavar="FEATUEFILE",
             help="output feature file")
+    parser.add_argument("-q", "--quiet", action='store_true',
+            help="Suppress non-error messages")
 
     options = parser.parse_args(args)
+
+    if options.quiet:
+        log.setLevel(logging.ERROR)
 
     converter = VtpToFea(options.font)
     converter.convert(options.featurefile)
