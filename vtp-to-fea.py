@@ -90,7 +90,7 @@ class VtpToFea:
             elif isinstance(statement, VoltAst.ScriptDefinition):
                 self._scriptDefinition(statement)
             elif not isinstance(statement, VoltAst.LookupDefinition):
-                assert False, "%s is not handled" % statement
+                raise NotImplementedError(statement)
 
         # Lookup definitions need to be handled last as they reference glyph
         # and mark classes that might be defined after them.
@@ -212,7 +212,7 @@ class VtpToFea:
             elif isinstance(item, VoltAst.Range):
                 items.append(ast.GlyphClass(item.glyphSet()))
             else:
-                assert False, "%s is not handled" % item
+                raise NotImplementedError(item)
         return items
 
     def _enum(self, enum):
@@ -409,14 +409,14 @@ class VtpToFea:
                 exit = self._anchors[name]["exit"][1]
                 statements.append(ast.CursivePosStatement(glyph, None, exit))
         else:
-            assert False, "%s is not handled" % pos
+            raise NotImplementedError(pos)
 
     def _gposContextLookup(self, lookup, prefix, suffix, ignore, fealookup,
                            targetlookup):
         statements = fealookup.statements
 
-        # FIXME
-        assert not ignore
+        if ignore:
+            raise NotImplementedError(lookup, "EXCEPT_CONTEXT")
 
         pos = lookup.pos
         if isinstance(pos, VoltAst.PositionAdjustPairDefinition):
@@ -448,7 +448,7 @@ class VtpToFea:
             statements.append(ast.ChainContextPosStatement(
                 prefix, glyphs, suffix, lookups))
         else:
-            assert False, "%s is not handled" % pos
+            raise NotImplementedError(pos)
 
     def _gsubLookup(self, lookup, prefix, suffix, ignore, chain, fealookup):
         statements = fealookup.statements
@@ -477,7 +477,7 @@ class VtpToFea:
                 subst = ast.LigatureSubstStatement(prefix, glyphs,
                             suffix, replacement[0], chain)
             else:
-                assert False, "%s is not handled" % sub
+                raise NotImplementedError(sub)
             statements.append(subst)
 
     def _lookupDefinition(self, lookup):
@@ -510,8 +510,8 @@ class VtpToFea:
                                                   mark_filtering)
             fealookup.statements.append(lookupflags)
 
-        # FIXME
-        assert not lookup.reversal
+        if lookup.reversal:
+            raise NotImplementedError(lookup, "REVERSAL")
 
         contexts = []
         if lookup.context:
@@ -561,14 +561,32 @@ def main(args=None):
             help="output feature file")
     parser.add_argument("-q", "--quiet", action='store_true',
             help="Suppress non-error messages")
+    parser.add_argument("--traceback", action='store_true',
+            help="Don’t catch exceptions")
 
     options = parser.parse_args(args)
 
     if options.quiet:
         log.setLevel(logging.ERROR)
+    logging.basicConfig(format="%(levelname)s: %(message)s")
 
     converter = VtpToFea(options.font)
-    converter.convert(options.featurefile)
+    try:
+        converter.convert(options.featurefile)
+    except NotImplementedError as e:
+        if options.traceback:
+            raise
+        location = getattr(e.args[0], "location", None)
+        item = e.args[1] if len(e.args) > 1 else type(e.args[0]).__name__
+        message = '"%s" is not supported' % item
+        if location:
+            path, line, column = location
+            log.error('%s:%d:%d: %s', path, line, column, message)
+        else:
+            log.error(message)
+        return 1
+
 
 if __name__ == '__main__':
-    main()
+    import sys
+    sys.exit(main())
