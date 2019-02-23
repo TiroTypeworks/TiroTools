@@ -473,33 +473,33 @@ class VoltToFea:
                 log.warning("%s:%d:%d: Ignoring empty substitution",
                             path, line, column)
                 continue
-            subst = None
+            statement = None
             glyphs = self._coverage(key)
             replacement = self._coverage(val)
             if ignore:
                 chain_context = (prefix, glyphs, suffix)
-                subst = ast.IgnoreSubstStatement([chain_context])
+                statement = ast.IgnoreSubstStatement([chain_context])
             elif isinstance(sub, VoltAst.SubstitutionSingleDefinition):
                 assert(len(glyphs) == 1)
                 assert(len(replacement) == 1)
-                subst = ast.SingleSubstStatement(glyphs, replacement,
-                            prefix, suffix, chain)
+                statement = ast.SingleSubstStatement(
+                    glyphs, replacement, prefix, suffix, chain)
             elif isinstance(sub, VoltAst.SubstitutionReverseChainingSingleDefinition):
                 assert(len(glyphs) == 1)
                 assert(len(replacement) == 1)
-                subst = ast.ReverseChainSingleSubstStatement(prefix, suffix,
-                            glyphs, replacement)
+                statement = ast.ReverseChainSingleSubstStatement(
+                    prefix, suffix, glyphs, replacement)
             elif isinstance(sub, VoltAst.SubstitutionMultipleDefinition):
                 assert(len(glyphs) == 1)
-                subst = ast.MultipleSubstStatement(prefix, glyphs[0], suffix,
-                            replacement, chain)
+                statement = ast.MultipleSubstStatement(
+                    prefix, glyphs[0], suffix, replacement, chain)
             elif isinstance(sub, VoltAst.SubstitutionLigatureDefinition):
                 assert(len(replacement) == 1)
-                subst = ast.LigatureSubstStatement(prefix, glyphs,
-                            suffix, replacement[0], chain)
+                statement = ast.LigatureSubstStatement(
+                    prefix, glyphs, suffix, replacement[0], chain)
             else:
                 raise NotImplementedError(sub)
-            statements.append(subst)
+            statements.append(statement)
 
     def _lookupDefinition(self, lookup):
         mark_attachement = None
