@@ -417,9 +417,6 @@ class VtpToFea:
 
         assert not lookup.reversal
 
-        if ignore:
-            raise NotImplementedError(lookup, "EXCEPT_CONTEXT")
-
         pos = lookup.pos
         if isinstance(pos, VoltAst.PositionAdjustPairDefinition):
             for (idx1, idx2), (pos1, pos2) in pos.adjust_pair.items():
@@ -430,25 +427,39 @@ class VtpToFea:
                 assert len(glyphs1) == 1
                 assert len(glyphs2) == 1
                 glyphs = (glyphs1[0], glyphs2[0])
-                lookups = (targetlookup, targetlookup)
-                statements.append(ast.ChainContextPosStatement(
-                    prefix, glyphs, suffix, lookups))
+
+                if ignore:
+                    statement = ast.IgnorePosStatement(
+                        [(prefix, glyphs, suffix)])
+                else:
+                    lookups = (targetlookup, targetlookup)
+                    statement = ast.ChainContextPosStatement(
+                        prefix, glyphs, suffix, lookups)
+                statements.append(statement)
         elif isinstance(pos, VoltAst.PositionAdjustSingleDefinition):
-            lookups = [targetlookup]
             glyphs = [ast.GlyphClass()]
             for a, b in pos.adjust_single:
                 glyph = self._coverage(a)
                 record = self._adjustment(b)
                 glyphs[0].extend(glyph)
-            statements.append(ast.ChainContextPosStatement(
-                prefix, glyphs, suffix, lookups))
+
+            if ignore:
+                statement = ast.IgnorePosStatement([(prefix, glyphs, suffix)])
+            else:
+                statement = ast.ChainContextPosStatement(
+                    prefix, glyphs, suffix, [targetlookup])
+            statements.append(statement)
         elif isinstance(pos, VoltAst.PositionAttachDefinition):
-            lookups = [targetlookup]
             glyphs = [ast.GlyphClass()]
             for coverage, _ in pos.coverage_to:
                 glyphs[0].extend(self._coverage(coverage))
-            statements.append(ast.ChainContextPosStatement(
-                prefix, glyphs, suffix, lookups))
+
+            if ignore:
+                statement = ast.IgnorePosStatement([(prefix, glyphs, suffix)])
+            else:
+                statement = ast.ChainContextPosStatement(
+                    prefix, glyphs, suffix, [targetlookup])
+            statements.append(statement)
         else:
             raise NotImplementedError(pos)
 
@@ -540,7 +551,7 @@ class VtpToFea:
             if lookup.pos is not None:
                 if self._settings.get("COMPILER_USEEXTENSIONLOOKUPS"):
                     fealookup.use_extension = True
-                if prefix or suffix or ignore:
+                if prefix or suffix or chain or ignore:
                     if not ignore and targetlookup is None:
                         targetname = self._lookupName(lookup.name + " target")
                         targetlookup = ast.LookupBlock(targetname)
