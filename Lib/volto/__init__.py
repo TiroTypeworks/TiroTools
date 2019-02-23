@@ -4,9 +4,9 @@ import re
 from collections import OrderedDict
 from tempfile import NamedTemporaryFile
 
-from fontTools.ttLib import TTFont
+from fontTools.ttLib import TTFont, TTLibError
 from fontTools.feaLib import ast
-from fontTools.voltLib import ast as VoltAst
+from fontTools.voltLib import ast as VAst
 from fontTools.voltLib.parser import Parser as VoltParser
 
 log = logging.getLogger()
@@ -72,30 +72,30 @@ class VoltToFea:
                     temp.write(font["TSIV"].data)
                     temp.flush()
                     parser = VoltParser(temp.name)
-        except:
+        except TTLibError:
             parser = VoltParser(filename)
 
         return parser.parse(), font
 
     def _collectStatements(self, doc):
         for statement in doc.statements:
-            if isinstance(statement, VoltAst.GlyphDefinition):
+            if isinstance(statement, VAst.GlyphDefinition):
                 self._glyphDefinition(statement)
-            elif isinstance(statement, VoltAst.AnchorDefinition):
+            elif isinstance(statement, VAst.AnchorDefinition):
                 self._anchorDefinition(statement)
-            elif isinstance(statement, VoltAst.SettingDefinition):
+            elif isinstance(statement, VAst.SettingDefinition):
                 self._settingDefinition(statement)
-            elif isinstance(statement, VoltAst.GroupDefinition):
+            elif isinstance(statement, VAst.GroupDefinition):
                 self._groupDefinition(statement)
-            elif isinstance(statement, VoltAst.ScriptDefinition):
+            elif isinstance(statement, VAst.ScriptDefinition):
                 self._scriptDefinition(statement)
-            elif not isinstance(statement, VoltAst.LookupDefinition):
+            elif not isinstance(statement, VAst.LookupDefinition):
                 raise NotImplementedError(statement)
 
         # Lookup definitions need to be handled last as they reference glyph
         # and mark classes that might be defined after them.
         for statement in doc.statements:
-            if isinstance(statement, VoltAst.LookupDefinition):
+            if isinstance(statement, VAst.LookupDefinition):
                 self._lookupDefinition(statement)
 
     def _buildFeatureFile(self):
@@ -203,13 +203,13 @@ class VoltToFea:
     def _coverage(self, coverage):
         items = []
         for item in coverage:
-            if isinstance(item, VoltAst.GlyphName):
+            if isinstance(item, VAst.GlyphName):
                 items.append(self._glyphName(item))
-            elif isinstance(item, VoltAst.GroupName):
+            elif isinstance(item, VAst.GroupName):
                 items.append(self._groupName(item))
-            elif isinstance(item, VoltAst.Enum):
+            elif isinstance(item, VAst.Enum):
                 items.append(self._enum(item))
-            elif isinstance(item, VoltAst.Range):
+            elif isinstance(item, VAst.Range):
                 items.append(ast.GlyphClass(item.glyphSet()))
             else:
                 raise NotImplementedError(item)
@@ -250,14 +250,17 @@ class VoltToFea:
             self._ligatures[glyph.name] = glyph.components
 
     def _scriptDefinition(self, script):
+        stag = script.tag
         for lang in script.langs:
+            ltag = lang.tag
             for feature in lang.features:
-                if feature.tag not in self._features:
-                    self._features[feature.tag] = OrderedDict()
-                if script.tag not in self._features[feature.tag]:
-                    self._features[feature.tag][script.tag] = OrderedDict()
-                assert lang.tag not in self._features[feature.tag][script.tag]
-                self._features[feature.tag][script.tag][lang.tag] = feature.lookups
+                ftag = feature.tag
+                if ftag not in self._features:
+                    self._features[ftag] = OrderedDict()
+                if stag not in self._features[ftag]:
+                    self._features[ftag][stag] = OrderedDict()
+                assert ltag not in self._features[ftag][stag]
+                self._features[ftag][stag][ltag] = feature.lookups
 
     def _settingDefinition(self, setting):
         if setting.name.startswith("COMPILER_"):
@@ -288,27 +291,28 @@ class VoltToFea:
                           yDeviceTable=dy_device or None)
 
     def _anchorDefinition(self, anchordef):
+        anchorname = anchordef.name
         glyphname = anchordef.glyph_name
         anchor = self._anchor(anchordef.pos)
 
-        if anchordef.name.startswith("MARK_"):
-            name = "_".join(anchordef.name.split("_")[1:])
+        if anchorname.startswith("MARK_"):
+            name = "_".join(anchorname.split("_")[1:])
             markclass = ast.MarkClass(self._className(name))
             glyph = self._glyphName(glyphname)
             markdef = MarkClassDefinition(markclass, anchor, glyph)
-            self._markclasses[(glyphname, anchordef.name)] = markdef
+            self._markclasses[(glyphname, anchorname)] = markdef
         else:
             if glyphname not in self._anchors:
                 self._anchors[glyphname] = {}
-            if anchordef.name not in self._anchors[glyphname]:
-                self._anchors[glyphname][anchordef.name] = {}
-            self._anchors[glyphname][anchordef.name][anchordef.component] = anchor
+            if anchorname not in self._anchors[glyphname]:
+                self._anchors[glyphname][anchorname] = {}
+            self._anchors[glyphname][anchorname][anchordef.component] = anchor
 
     def _gposLookup(self, lookup, fealookup):
         statements = fealookup.statements
 
         pos = lookup.pos
-        if isinstance(pos, VoltAst.PositionAdjustPairDefinition):
+        if isinstance(pos, VAst.PositionAdjustPairDefinition):
             for (idx1, idx2), (pos1, pos2) in pos.adjust_pair.items():
                 coverage_1 = pos.coverages_1[idx1 - 1]
                 coverage_2 = pos.coverages_2[idx2 - 1]
@@ -317,7 +321,7 @@ class VoltToFea:
                 # fail.
                 enumerated = False
                 for item in coverage_1 + coverage_2:
-                    if not isinstance(item, VoltAst.GroupName):
+                    if not isinstance(item, VAst.GroupName):
                         enumerated = True
 
                 glyphs1 = self._coverage(coverage_1)
@@ -329,14 +333,14 @@ class VoltToFea:
                 statements.append(ast.PairPosStatement(
                     glyphs1[0], record1, glyphs2[0], record2,
                     enumerated=enumerated))
-        elif isinstance(pos, VoltAst.PositionAdjustSingleDefinition):
+        elif isinstance(pos, VAst.PositionAdjustSingleDefinition):
             for a, b in pos.adjust_single:
                 glyphs = self._coverage(a)
                 record = self._adjustment(b)
                 assert len(glyphs) == 1
                 statements.append(ast.SinglePosStatement(
                     [(glyphs[0], record)], [], [], False))
-        elif isinstance(pos, VoltAst.PositionAttachDefinition):
+        elif isinstance(pos, VAst.PositionAttachDefinition):
             anchors = {}
             for marks, classname in pos.coverage_to:
                 for mark in marks:
@@ -379,7 +383,7 @@ class VoltToFea:
                 else:
                     mark = ast.MarkBasePosStatement(base, marks[0])
                 statements.append(mark)
-        elif isinstance(pos, VoltAst.PositionAttachCursiveDefinition):
+        elif isinstance(pos, VAst.PositionAttachCursiveDefinition):
             # Collect enter and exit glyphs
             enter_coverage = []
             for coverage in pos.coverages_enter:
@@ -418,12 +422,10 @@ class VoltToFea:
         assert not lookup.reversal
 
         pos = lookup.pos
-        if isinstance(pos, VoltAst.PositionAdjustPairDefinition):
+        if isinstance(pos, VAst.PositionAdjustPairDefinition):
             for (idx1, idx2), (pos1, pos2) in pos.adjust_pair.items():
                 glyphs1 = self._coverage(pos.coverages_1[idx1 - 1])
                 glyphs2 = self._coverage(pos.coverages_2[idx2 - 1])
-                record1 = self._adjustment(pos1)
-                record2 = self._adjustment(pos2)
                 assert len(glyphs1) == 1
                 assert len(glyphs2) == 1
                 glyphs = (glyphs1[0], glyphs2[0])
@@ -436,11 +438,10 @@ class VoltToFea:
                     statement = ast.ChainContextPosStatement(
                         prefix, glyphs, suffix, lookups)
                 statements.append(statement)
-        elif isinstance(pos, VoltAst.PositionAdjustSingleDefinition):
+        elif isinstance(pos, VAst.PositionAdjustSingleDefinition):
             glyphs = [ast.GlyphClass()]
             for a, b in pos.adjust_single:
                 glyph = self._coverage(a)
-                record = self._adjustment(b)
                 glyphs[0].extend(glyph)
 
             if ignore:
@@ -449,7 +450,7 @@ class VoltToFea:
                 statement = ast.ChainContextPosStatement(
                     prefix, glyphs, suffix, [targetlookup])
             statements.append(statement)
-        elif isinstance(pos, VoltAst.PositionAttachDefinition):
+        elif isinstance(pos, VAst.PositionAttachDefinition):
             glyphs = [ast.GlyphClass()]
             for coverage, _ in pos.coverage_to:
                 glyphs[0].extend(self._coverage(coverage))
@@ -479,21 +480,22 @@ class VoltToFea:
             if ignore:
                 chain_context = (prefix, glyphs, suffix)
                 statement = ast.IgnoreSubstStatement([chain_context])
-            elif isinstance(sub, VoltAst.SubstitutionSingleDefinition):
+            elif isinstance(sub, VAst.SubstitutionSingleDefinition):
                 assert(len(glyphs) == 1)
                 assert(len(replacements) == 1)
                 statement = ast.SingleSubstStatement(
                     glyphs, replacements, prefix, suffix, chain)
-            elif isinstance(sub, VoltAst.SubstitutionReverseChainingSingleDefinition):
+            elif isinstance(sub,
+                            VAst.SubstitutionReverseChainingSingleDefinition):
                 assert(len(glyphs) == 1)
                 assert(len(replacements) == 1)
                 statement = ast.ReverseChainSingleSubstStatement(
                     prefix, suffix, glyphs, replacements)
-            elif isinstance(sub, VoltAst.SubstitutionMultipleDefinition):
+            elif isinstance(sub, VAst.SubstitutionMultipleDefinition):
                 assert(len(glyphs) == 1)
                 statement = ast.MultipleSubstStatement(
                     prefix, glyphs[0], suffix, replacements, chain)
-            elif isinstance(sub, VoltAst.SubstitutionLigatureDefinition):
+            elif isinstance(sub, VAst.SubstitutionLigatureDefinition):
                 assert(len(replacements) == 1)
                 statement = ast.LigatureSubstStatement(
                     prefix, glyphs, suffix, replacements[0], chain)
@@ -511,8 +513,8 @@ class VoltToFea:
         if not lookup.process_base:
             flags |= 2
         # FIXME: Does VOLT support this?
-        #if not lookup.process_ligatures:
-        #    flags |= 4
+        # if not lookup.process_ligatures:
+        #     flags |= 4
         if not lookup.process_marks:
             flags |= 8
         elif isinstance(lookup.process_marks, str):
@@ -572,15 +574,15 @@ def main(args=None):
     import argparse
 
     parser = argparse.ArgumentParser(
-            description="convert VOLT/VTP to feature files.")
+        description="convert VOLT/VTP to feature files.")
     parser.add_argument("font", metavar="FONT",
-            help="input font/VTP file to process")
+                        help="input font/VTP file to process")
     parser.add_argument("featurefile", metavar="FEATUEFILE",
-            help="output feature file")
+                        help="output feature file")
     parser.add_argument("-q", "--quiet", action='store_true',
-            help="Suppress non-error messages")
+                        help="Suppress non-error messages")
     parser.add_argument("--traceback", action='store_true',
-            help="Don’t catch exceptions")
+                        help="Don’t catch exceptions")
 
     options = parser.parse_args(args)
 
