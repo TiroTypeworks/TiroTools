@@ -21,7 +21,7 @@ class MarkClassDefinition(ast.MarkClassDefinition):
         return res
 
 
-class VtpToFea:
+class VoltToFea:
     _NOT_LOOKUP_NAME_RE = re.compile(r"[^A-Za-z_0-9.]")
     _NOT_CLASS_NAME_RE = re.compile(r"[^A-Za-z_0-9.\-]")
 
@@ -585,7 +585,7 @@ def main(args=None):
         log.setLevel(logging.ERROR)
     logging.basicConfig(format="%(levelname)s: %(message)s")
 
-    converter = VtpToFea(options.font)
+    converter = VoltToFea(options.font)
     try:
         converter.convert(options.featurefile)
     except NotImplementedError as e:

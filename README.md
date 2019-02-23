@@ -1,5 +1,5 @@
-vtp-to-fea
-==========
+Volto
+=====
 
 A VOLT/VTP to feature files converter.
 
