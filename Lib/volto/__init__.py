@@ -469,6 +469,9 @@ class VoltToFea:
         sub = lookup.sub
         for key, val in sub.mapping.items():
             if not key or not val:
+                path, line, column = sub.location
+                log.warning("%s:%d:%d: Ignoring empty substitution",
+                            path, line, column)
                 continue
             subst = None
             glyphs = self._coverage(key)
