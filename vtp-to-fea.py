@@ -121,6 +121,10 @@ class VtpToFea:
                     lookups[base] = []
                 lookups[base].append(lookup)
             else:
+                if "\\" in name:
+                    log.warning('Lookup should be a subtable, but feature '
+                                'files allow subtables only in pair '
+                                'positioning lookups: %s', name)
                 lookups[name] = [lookup]
 
         for name, sublookups in lookups.items():
