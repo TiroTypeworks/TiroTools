@@ -574,7 +574,7 @@ def main(args=None):
     import argparse
 
     parser = argparse.ArgumentParser(
-        description="convert VOLT/VTP to feature files.")
+        description="Convert VOLT/VTP to feature files.")
     parser.add_argument("font", metavar="FONT",
                         help="input font/VTP file to process")
     parser.add_argument("featurefile", metavar="FEATUEFILE",
