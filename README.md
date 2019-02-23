@@ -6,7 +6,7 @@ A VOLT/VTP to feature files converter.
 Limitations
 -----------
 
-* Not all VOLT features are supported, the script will assert if it it
+* Not all VOLT features are supported, the script will error if it it
   encounters something it does not understand. Please report an issue if this
   happens.
 * Feature files syntax for mark positioning is awkward and does not allow
