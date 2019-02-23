@@ -541,14 +541,20 @@ class VtpToFea:
         self._lookups[lookup.name.lower()] = fealookup
 
 
-def main(filename, outfilename):
-    converter = VtpToFea(filename)
-    converter.convert(outfilename)
+def main(args=None):
+    import argparse
+
+    parser = argparse.ArgumentParser(
+            description="convert VOLT/VTP to feature files.")
+    parser.add_argument("font", metavar="FONT",
+            help="input font/VTP file to process")
+    parser.add_argument("featurefile", metavar="FEATUEFILE",
+            help="output feature file")
+
+    options = parser.parse_args(args)
+
+    converter = VtpToFea(options.font)
+    converter.convert(options.featurefile)
 
 if __name__ == '__main__':
-    import sys
-    if len(sys.argv) == 3:
-        main(sys.argv[1], sys.argv[2])
-    else:
-        print('Usage: %s voltfile feafile' % sys.argv[0])
-        sys.exit(1)
+    main()
