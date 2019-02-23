@@ -415,6 +415,8 @@ class VtpToFea:
                            targetlookup):
         statements = fealookup.statements
 
+        assert not lookup.reversal
+
         if ignore:
             raise NotImplementedError(lookup, "EXCEPT_CONTEXT")
 
@@ -468,6 +470,11 @@ class VtpToFea:
                 assert(len(replacement) == 1)
                 subst = ast.SingleSubstStatement(glyphs, replacement,
                             prefix, suffix, chain)
+            elif isinstance(sub, VoltAst.SubstitutionReverseChainingSingleDefinition):
+                assert(len(glyphs) == 1)
+                assert(len(replacement) == 1)
+                subst = ast.ReverseChainSingleSubstStatement(prefix, suffix,
+                            glyphs, replacement)
             elif isinstance(sub, VoltAst.SubstitutionMultipleDefinition):
                 assert(len(glyphs) == 1)
                 subst = ast.MultipleSubstStatement(prefix, glyphs[0], suffix,
@@ -509,9 +516,6 @@ class VtpToFea:
             lookupflags = ast.LookupFlagStatement(flags, mark_attachement,
                                                   mark_filtering)
             fealookup.statements.append(lookupflags)
-
-        if lookup.reversal:
-            raise NotImplementedError(lookup, "REVERSAL")
 
         contexts = []
         if lookup.context:
