@@ -262,6 +262,8 @@ class VtpToFea:
     def _settingDefinition(self, setting):
         if setting.name.startswith("COMPILER_"):
             self._settings[setting.name] = setting.value
+        else:
+            log.warning("Unsupported setting ignored: %s", setting.name)
 
     def _adjustment(self, adjustment):
         adv, dx, dy, adv_adjust_by, dx_adjust_by, dy_adjust_by = adjustment
