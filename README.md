@@ -15,7 +15,3 @@ Limitations
   file. This should not be an issue in practice, but if it is then the only way
   is to modify the VOLT file or the generated feature file manually to use unique
   mark anchors for each lookup.
-* Subtables (in VOLT named as “base\sub”) in feature files only supported for
-  pair positioning lookups, so using subtables for other kinds of lookups will
-  result in writing each as a separate lookup, which might change the behaviour
-  of the built font file.

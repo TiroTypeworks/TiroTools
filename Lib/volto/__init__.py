@@ -1,3 +1,5 @@
+#!/usr/bin/env python3.6
+
 import logging
 import re
 
@@ -109,39 +111,9 @@ class VoltToFea:
         statements.extend(c[1] for c in sorted(self._markclasses.items()))
 
         statements.append(ast.Comment("\n# Lookups"))
-        # Merge sub lookups (lookups named “base\sub”, but only when they are
-        # pairpos lookups as feature files don’t support “subtable” statement
-        # for other lookups.
-        lookups = OrderedDict()
-        for name, lookup in self._lookups.items():
-            if "\\" in name and \
-                    isinstance(lookup.statements[-1], ast.PairPosStatement):
-                base = name.split("\\")[0]
-                if base not in lookups:
-                    lookups[base] = []
-                lookups[base].append(lookup)
-            else:
-                if "\\" in name:
-                    log.warning('Lookup should be a subtable, but feature '
-                                'files allow subtables only in pair '
-                                'positioning lookups: %s', name)
-                lookups[name] = [lookup]
-
-        for name, sublookups in lookups.items():
-            if len(sublookups) > 1:
-                base = sublookups[0]
-                voltname = getattr(base, "voltname", base.name)
-                base.statements.insert(0, ast.Comment("# " + voltname))
-                base.name = name
-                for sublookup in sublookups[1:]:
-                    sublookup.merged = True
-                    base.statements.append(ast.SubtableStatement())
-                    voltname = getattr(sublookup, "voltname", sublookup.name)
-                    base.statements.append(ast.Comment("# " + voltname))
-                    base.statements.extend(sublookup.statements)
-                statements.append(base)
-            else:
-                statements.extend(sublookups)
+        for lookup in self._lookups.values():
+            statements.extend(getattr(lookup, "targets", []))
+            statements.append(lookup)
 
         statements.append(ast.Comment("# Features"))
         for ftag, scripts in self._features.items():
@@ -156,8 +128,6 @@ class VoltToFea:
                     feature.statements.append(lang)
                     for name in lookups:
                         lookup = self._lookups[name.lower()]
-                        if getattr(lookup, "merged", False):
-                            continue
                         lookupref = ast.LookupReferenceStatement(lookup)
                         feature.statements.append(lookupref)
             statements.append(feature)
@@ -254,13 +224,14 @@ class VoltToFea:
         for lang in script.langs:
             ltag = lang.tag
             for feature in lang.features:
+                lookups = {l.split("\\")[0]: True for l in feature.lookups}
                 ftag = feature.tag
                 if ftag not in self._features:
                     self._features[ftag] = OrderedDict()
                 if stag not in self._features[ftag]:
                     self._features[ftag][stag] = OrderedDict()
                 assert ltag not in self._features[ftag][stag]
-                self._features[ftag][stag][ltag] = feature.lookups
+                self._features[ftag][stag][ltag] = lookups.keys()
 
     def _settingDefinition(self, setting):
         if setting.name.startswith("COMPILER_"):
@@ -522,16 +493,33 @@ class VoltToFea:
         elif lookup.mark_glyph_set is not None:
             mark_filtering = self._groupName(lookup.mark_glyph_set)
 
-        fealookup = ast.LookupBlock(self._lookupName(lookup.name))
-        fealookup.voltname = lookup.name
-
-        if lookup.comments is not None:
-            fealookup.statements.append(ast.Comment(lookup.comments))
-
+        lookupflags = None
         if flags or mark_attachement is not None or mark_filtering is not None:
             lookupflags = ast.LookupFlagStatement(flags, mark_attachement,
                                                   mark_filtering)
-            fealookup.statements.append(lookupflags)
+        if "\\" in lookup.name:
+            # Merge sub lookups as subtables (lookups named “base\sub”),
+            # makeotf/feaLib will issue a warning and ignore the subtable
+            # statement if it is not a pairpos lookup, though.
+            name = lookup.name.split("\\")[0]
+            if name.lower() not in self._lookups:
+                fealookup = ast.LookupBlock(self._lookupName(name))
+                if lookupflags is not None:
+                    fealookup.statements.append(lookupflags)
+                fealookup.statements.append(ast.Comment("# " + lookup.name))
+            else:
+                fealookup = self._lookups[name.lower()]
+                fealookup.statements.append(ast.SubtableStatement())
+                fealookup.statements.append(ast.Comment("# " + lookup.name))
+            self._lookups[name.lower()] = fealookup
+        else:
+            fealookup = ast.LookupBlock(self._lookupName(lookup.name))
+            if lookupflags is not None:
+                fealookup.statements.append(lookupflags)
+            self._lookups[lookup.name.lower()] = fealookup
+
+        if lookup.comments is not None:
+            fealookup.statements.append(ast.Comment(lookup.comments))
 
         contexts = []
         if lookup.context:
@@ -560,14 +548,13 @@ class VoltToFea:
                     if not ignore and targetlookup is None:
                         targetname = self._lookupName(lookup.name + " target")
                         targetlookup = ast.LookupBlock(targetname)
-                        self._lookups[targetname] = targetlookup
+                        fealookup.targets = getattr(fealookup, "targets", [])
+                        fealookup.targets.append(targetlookup)
                         self._gposLookup(lookup, targetlookup)
                     self._gposContextLookup(lookup, prefix, suffix, ignore,
                                             fealookup, targetlookup)
                 else:
                     self._gposLookup(lookup, fealookup)
-
-        self._lookups[lookup.name.lower()] = fealookup
 
 
 def main(args=None):
