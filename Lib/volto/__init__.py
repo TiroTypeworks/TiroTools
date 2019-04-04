@@ -74,6 +74,9 @@ class VoltToFea:
                     temp.write(font["TSIV"].data)
                     temp.flush()
                     parser = VoltParser(temp.name)
+            else:
+                raise TypeError(
+                    '"TSIV" table is missing, font was not saved from VOLT?')
         except TTLibError:
             parser = VoltParser(filename)
 
@@ -591,6 +594,10 @@ def main(args=None):
         else:
             log.error(message)
         return 1
+    except TypeError as e:
+        if options.traceback:
+            raise
+        log.error(e)
 
 
 if __name__ == '__main__':
