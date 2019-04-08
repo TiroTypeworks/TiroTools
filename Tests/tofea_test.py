@@ -821,6 +821,41 @@ class ToFeaTest(unittest.TestCase):
         self.assertEqual(logs.output,
                 ['WARNING:root:Unsupported setting ignored: CMAP_FORMAT'])
 
+    def test_sanitize_lookup_name(self):
+        fea = self.parse(
+            'DEF_LOOKUP "Test Lookup" PROCESS_BASE PROCESS_MARKS ALL '
+            'DIRECTION LTR IN_CONTEXT END_CONTEXT\n'
+            'AS_POSITION ADJUST_PAIR END_ADJUST END_POSITION\n'
+            'DEF_LOOKUP "Test-Lookup" PROCESS_BASE PROCESS_MARKS ALL '
+            'DIRECTION LTR IN_CONTEXT END_CONTEXT\n'
+            'AS_POSITION ADJUST_PAIR END_ADJUST END_POSITION\n'
+        )
+        self.assertEqual(fea,
+                         "\n# Lookups\n"
+                         "lookup Test_Lookup {\n"
+                         "    \n"
+                         "} Test_Lookup;\n"
+                         "\n"
+                         "lookup Test_Lookup_ {\n"
+                         "    \n"
+                         "} Test_Lookup_;\n"
+        )
+
+    def test_sanitize_group_name(self):
+        fea = self.parse(
+            'DEF_GROUP "aaccented glyphs"\n'
+            'ENUM GLYPH "aacute" GLYPH "abreve" END_ENUM\n'
+            'END_GROUP\n'
+            'DEF_GROUP "aaccented+glyphs"\n'
+            'ENUM GLYPH "aacute" GLYPH "abreve" END_ENUM\n'
+            'END_GROUP\n'
+        )
+        self.assertEqual(fea,
+                         "# Glyph classes\n"
+                         "@aaccented_glyphs = [aacute abreve];\n"
+                         "@aaccented_glyphs_ = [aacute abreve];"
+        )
+
     def setUp(self):
         self.tempdir = None
         self.num_tempfiles = 0
