@@ -168,7 +168,7 @@ class VoltToFea:
             name = glyph.glyph
         except AttributeError:
             name = glyph
-        return ast.GlyphName(self._glyph_map[name])
+        return ast.GlyphName(self._glyph_map.get(name, name))
 
     def _groupName(self, group):
         try:
@@ -215,7 +215,7 @@ class VoltToFea:
         try:
             self._glyph_map[glyph.name] = self._glyph_order[glyph.id]
         except TypeError:
-            self._glyph_map[glyph.name] = glyph.name
+            pass
 
         if glyph.type in ("BASE", "MARK", "LIGATURE", "COMPONENT"):
             if glyph.type not in self._gdef:
