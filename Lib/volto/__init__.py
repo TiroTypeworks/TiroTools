@@ -217,9 +217,10 @@ class VoltToFea:
         except TypeError:
             self._glyph_map[glyph.name] = glyph.name
 
-        if glyph.type not in self._gdef:
-            self._gdef[glyph.type] = ast.GlyphClass()
-        self._gdef[glyph.type].glyphs.append(self._glyphName(glyph.name))
+        if glyph.type in ("BASE", "MARK", "LIGATURE", "COMPONENT"):
+            if glyph.type not in self._gdef:
+                self._gdef[glyph.type] = ast.GlyphClass()
+            self._gdef[glyph.type].glyphs.append(self._glyphName(glyph.name))
 
         if glyph.type == "MARK":
             self._marks.add(glyph.name)
