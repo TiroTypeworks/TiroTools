@@ -107,33 +107,37 @@ class VoltToFea:
         doc = ast.FeatureFile()
         statements = doc.statements
 
-        statements.append(ast.Comment("# Glyph classes"))
-        statements.extend(self._glyphclasses.values())
+        if self._glyphclasses:
+            statements.append(ast.Comment("# Glyph classes"))
+            statements.extend(self._glyphclasses.values())
 
-        statements.append(ast.Comment("\n# Mark classes"))
-        statements.extend(c[1] for c in sorted(self._markclasses.items()))
+        if self._markclasses:
+            statements.append(ast.Comment("\n# Mark classes"))
+            statements.extend(c[1] for c in sorted(self._markclasses.items()))
 
-        statements.append(ast.Comment("\n# Lookups"))
-        for lookup in self._lookups.values():
-            statements.extend(getattr(lookup, "targets", []))
-            statements.append(lookup)
+        if self._lookups:
+            statements.append(ast.Comment("\n# Lookups"))
+            for lookup in self._lookups.values():
+                statements.extend(getattr(lookup, "targets", []))
+                statements.append(lookup)
 
-        statements.append(ast.Comment("# Features"))
-        for ftag, scripts in self._features.items():
-            feature = ast.FeatureBlock(ftag)
-            stags = sorted(scripts, key=lambda k: 0 if k == "DFLT" else 1)
-            for stag in stags:
-                script = ast.ScriptStatement(stag)
-                langs = scripts[stag]
-                feature.statements.append(script)
-                for ltag, lookups in langs.items():
-                    lang = ast.LanguageStatement(ltag)
-                    feature.statements.append(lang)
-                    for name in lookups:
-                        lookup = self._lookups[name.lower()]
-                        lookupref = ast.LookupReferenceStatement(lookup)
-                        feature.statements.append(lookupref)
-            statements.append(feature)
+        if self._features:
+            statements.append(ast.Comment("# Features"))
+            for ftag, scripts in self._features.items():
+                feature = ast.FeatureBlock(ftag)
+                stags = sorted(scripts, key=lambda k: 0 if k == "DFLT" else 1)
+                for stag in stags:
+                    script = ast.ScriptStatement(stag)
+                    langs = scripts[stag]
+                    feature.statements.append(script)
+                    for ltag, lookups in langs.items():
+                        lang = ast.LanguageStatement(ltag)
+                        feature.statements.append(lang)
+                        for name in lookups:
+                            lookup = self._lookups[name.lower()]
+                            lookupref = ast.LookupReferenceStatement(lookup)
+                            feature.statements.append(lookupref)
+                statements.append(feature)
 
         if self._gdef:
             gdef = ast.TableBlock("GDEF")
