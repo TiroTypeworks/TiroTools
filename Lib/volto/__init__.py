@@ -4,7 +4,7 @@ import logging
 import re
 
 from collections import OrderedDict
-from tempfile import NamedTemporaryFile
+from io import StringIO
 
 from fontTools.ttLib import TTFont, TTLibError
 from fontTools.feaLib import ast
@@ -27,8 +27,9 @@ class VoltToFea:
     _NOT_LOOKUP_NAME_RE = re.compile(r"[^A-Za-z_0-9.]")
     _NOT_CLASS_NAME_RE = re.compile(r"[^A-Za-z_0-9.\-]")
 
-    def __init__(self, filename):
-        self._filename = filename
+    def __init__(self, file_or_path, font=None):
+        self._file_or_path = file_or_path
+        self._font = font
 
         self._glyph_map = {}
         self._glyph_order = None
@@ -64,23 +65,6 @@ class VoltToFea:
                 res += "_"
             self._class_names[name] = res
         return self._class_names[name]
-
-    def _parse(self, filename):
-        font = None
-        try:
-            font = TTFont(filename)
-            if "TSIV" in font:
-                with NamedTemporaryFile() as temp:
-                    temp.write(font["TSIV"].data)
-                    temp.flush()
-                    parser = VoltParser(temp.name)
-            else:
-                raise TypeError(
-                    '"TSIV" table is missing, font was not saved from VOLT?')
-        except TTLibError:
-            parser = VoltParser(filename)
-
-        return parser.parse(), font
 
     def _collectStatements(self, doc):
         for statement in doc.statements:
@@ -151,17 +135,15 @@ class VoltToFea:
 
         return doc
 
-    def convert(self, path):
-        doc, font = self._parse(self._filename)
+    def convert(self):
+        doc = VoltParser(self._file_or_path).parse()
 
-        if font is not None:
-            self._glyph_order = font.getGlyphOrder()
+        if self._font is not None:
+            self._glyph_order = self._font.getGlyphOrder()
 
         self._collectStatements(doc)
         fea = self._buildFeatureFile()
-
-        with open(path, "w") as feafile:
-            feafile.write(fea.asFea())
+        return fea.asFea()
 
     def _glyphName(self, glyph):
         try:
@@ -570,7 +552,7 @@ def main(args=None):
 
     parser = argparse.ArgumentParser(
         description="Convert VOLT/VTP to feature files.")
-    parser.add_argument("font", metavar="FONT",
+    parser.add_argument("input", metavar="INPUT",
                         help="input font/VTP file to process")
     parser.add_argument("featurefile", metavar="FEATUEFILE",
                         help="output feature file")
@@ -585,9 +567,21 @@ def main(args=None):
         log.setLevel(logging.ERROR)
     logging.basicConfig(format="%(levelname)s: %(message)s")
 
-    converter = VoltToFea(options.font)
+    file_or_path = options.input
+    font = None
     try:
-        converter.convert(options.featurefile)
+        font = TTFont(file_or_path)
+        if "TSIV" in font:
+            file_or_path = StringIO(font["TSIV"].data.decode("utf-8"))
+        else:
+            log.error('"TSIV" table is missing, font was not saved from VOLT?')
+            return 1
+    except TTLibError:
+        pass
+
+    converter = VoltToFea(file_or_path, font)
+    try:
+        fea = converter.convert()
     except NotImplementedError as e:
         if options.traceback:
             raise
@@ -599,10 +593,8 @@ def main(args=None):
         else:
             log.error(message)
         return 1
-    except TypeError as e:
-        if options.traceback:
-            raise
-        log.error(e)
+    with open(options.featurefile, "w") as feafile:
+        feafile.write(fea)
 
 
 if __name__ == '__main__':

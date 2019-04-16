@@ -1,8 +1,5 @@
 from volto import VoltToFea
-from io import open
-import os
-import shutil
-import tempfile
+from io import StringIO
 import unittest
 
 
@@ -856,25 +853,8 @@ class ToFeaTest(unittest.TestCase):
                          "@aaccented_glyphs_ = [aacute abreve];"
         )
 
-    def setUp(self):
-        self.tempdir = None
-        self.num_tempfiles = 0
-
-    def tearDown(self):
-        if self.tempdir:
-            shutil.rmtree(self.tempdir)
-
     def parse(self, text):
-        if not self.tempdir:
-            self.tempdir = tempfile.mkdtemp()
-        self.num_tempfiles += 1
-        vtp = os.path.join(self.tempdir, "tmp%d.vtp" % self.num_tempfiles)
-        fea = os.path.join(self.tempdir, "tmp%d.fea" % self.num_tempfiles)
-        with open(vtp, "w") as f:
-            f.write(text)
-        VoltToFea(vtp).convert(fea)
-        with open(fea, "r") as f:
-            return f.read()
+        return VoltToFea(StringIO(text)).convert()
 
 
 if __name__ == "__main__":
