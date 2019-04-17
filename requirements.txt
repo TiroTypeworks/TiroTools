@@ -1,0 +1,2 @@
+fonttools==3.40.0
+pytest
