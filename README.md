@@ -38,13 +38,13 @@ Limitations
 * Not all VOLT features are supported, the script will error if it it
   encounters something it does not understand. Please report an issue if this
   happens.
-* Feature files syntax for mark positioning is awkward and does not allow
+* AFDKO feature file syntax for mark positioning is awkward and does not allow
   setting the mark coverage. It also defines mark anchors globally, as a result
   some mark positioning lookups might cover many marks than what was in the VOLT
   file. This should not be an issue in practice, but if it is then the only way
   is to modify the VOLT file or the generated feature file manually to use unique
   mark anchors for each lookup.
-* Volt allows subtable breaks in any lookup type, but feature file
+* VOLT allows subtable breaks in any lookup type, but AFDKO feature file
   implementations vary in their support; currently AFDKO’s makeOTF supports
   subtable breaks in pair positioning lookups only, while FontTools’ feaLib
   support it for most substitution lookups and only some positioning lookups.
