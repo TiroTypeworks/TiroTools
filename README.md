@@ -3,6 +3,14 @@ Volto
 
 MS VOLT `.vtp` to AFDKO `.fea` OpenType Layout converter.
 
+Installation
+------------
+
+Volto requires Python 3 and FontTools, to install from the GIT repository:
+```
+pip install git+https://github.com/TiroTypeworks/Volto
+```
+
 Usage
 -----
 
