@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.com/TiroTypeworks/Volto.svg?branch=master)](https://travis-ci.com/TiroTypeworks/Volto)
+
 Volto
 =====
 
