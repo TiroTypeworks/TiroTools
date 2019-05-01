@@ -685,6 +685,42 @@ class ToFeaTest(unittest.TestCase):
                          "} GDEF;\n"
                 )
 
+    def test_position_attach_in_context(self):
+        fea = self.parse(
+            'DEF_LOOKUP "test" PROCESS_BASE PROCESS_MARKS ALL '
+            'DIRECTION RTL\n'
+            'EXCEPT_CONTEXT LEFT GLYPH "a" END_CONTEXT\n'
+            'AS_POSITION\n'
+            'ATTACH GLYPH "a"\n'
+            'TO GLYPH "acutecomb" AT ANCHOR "top" '
+            'GLYPH "gravecomb" AT ANCHOR "top"\n'
+            'END_ATTACH\n'
+            'END_POSITION\n'
+            'DEF_ANCHOR "MARK_top" ON 120 GLYPH acutecomb COMPONENT 1 '
+            'AT POS DX 0 DY 450 END_POS END_ANCHOR\n'
+            'DEF_ANCHOR "MARK_top" ON 121 GLYPH gravecomb COMPONENT 1 '
+            'AT POS DX 0 DY 450 END_POS END_ANCHOR\n'
+            'DEF_ANCHOR "top" ON 31 GLYPH a COMPONENT 1 '
+            'AT POS DX 210 DY 450 END_POS END_ANCHOR\n'
+        )
+        self.assertEqual(fea,
+                         "\n# Mark classes\n"
+                         "markClass acutecomb <anchor 0 450> @top;\n"
+                         "markClass gravecomb <anchor 0 450> @top;\n"
+                         "\n"
+                         "# Lookups\n"
+                         "lookup test_target {\n"
+                         "    pos base a <anchor 210 450> mark @top;\n"
+                         "} test_target;\n"
+                         "\n"
+                         "lookup test {\n"
+                         "    lookupflag RightToLeft;\n"
+                         "    ignore pos a [acutecomb gravecomb]';\n"
+                         "    pos [acutecomb gravecomb]' lookup test_target;\n"
+                         "} test;\n"
+        )
+
+
     def test_position_attach_cursive(self):
         fea = self.parse(
             'DEF_LOOKUP "SomeLookup" PROCESS_BASE PROCESS_MARKS ALL '
@@ -735,13 +771,36 @@ class ToFeaTest(unittest.TestCase):
                          "} kern1;\n"
         )
 
+    def test_position_adjust_pair_in_context(self):
+        fea = self.parse(
+            'DEF_LOOKUP "kern1" PROCESS_BASE PROCESS_MARKS ALL '
+            'DIRECTION LTR\n'
+            'EXCEPT_CONTEXT LEFT GLYPH "A" END_CONTEXT\n'
+            'AS_POSITION\n'
+            'ADJUST_PAIR\n'
+            ' FIRST GLYPH "A" FIRST GLYPH "V"\n'
+            ' SECOND GLYPH "A" SECOND GLYPH "V"\n'
+            ' 2 1 BY POS ADV -25 END_POS POS END_POS\n'
+            'END_ADJUST\n'
+            'END_POSITION\n'
+        )
+        self.assertEqual(fea,
+                         "\n# Lookups\n"
+                         "lookup kern1_target {\n"
+                         "    enum pos V A -25;\n"
+                         "} kern1_target;\n"
+                         "\n"
+                         "lookup kern1 {\n"
+                         "    ignore pos A V' A';\n"
+                         "    pos V' lookup kern1_target A' lookup kern1_target;\n"
+                         "} kern1;\n"
+        )
+
     def test_position_adjust_single(self):
         fea = self.parse(
             'DEF_LOOKUP "TestLookup" PROCESS_BASE PROCESS_MARKS ALL '
             'DIRECTION LTR\n'
             'IN_CONTEXT\n'
-            # 'LEFT GLYPH "leftGlyph"\n'
-            # 'RIGHT GLYPH "rightGlyph"\n'
             'END_CONTEXT\n'
             'AS_POSITION\n'
             'ADJUST_SINGLE'
@@ -757,6 +816,35 @@ class ToFeaTest(unittest.TestCase):
                          "    pos glyph2 <456 None 0 None>;\n"
                          "} TestLookup;\n"
         )
+
+    def test_position_adjust_single_in_context(self):
+        fea = self.parse(
+            'DEF_LOOKUP "TestLookup" PROCESS_BASE PROCESS_MARKS ALL '
+            'DIRECTION LTR\n'
+            'EXCEPT_CONTEXT\n'
+            'LEFT GLYPH "leftGlyph"\n'
+            'RIGHT GLYPH "rightGlyph"\n'
+            'END_CONTEXT\n'
+            'AS_POSITION\n'
+            'ADJUST_SINGLE'
+            ' GLYPH "glyph1" BY POS ADV 0 DX 123 END_POS\n'
+            ' GLYPH "glyph2" BY POS ADV 0 DX 456 END_POS\n'
+            'END_ADJUST\n'
+            'END_POSITION\n'
+        )
+        self.assertEqual(fea,
+                         "\n# Lookups\n"
+                         "lookup TestLookup_target {\n"
+                         "    pos glyph1 <123 None 0 None>;\n"
+                         "    pos glyph2 <456 None 0 None>;\n"
+                         "} TestLookup_target;\n"
+                         "\n"
+                         "lookup TestLookup {\n"
+                         "    ignore pos leftGlyph [glyph1 glyph2]' rightGlyph;\n"
+                         "    pos [glyph1 glyph2]' lookup TestLookup_target;\n"
+                         "} TestLookup;\n"
+        )
+
 
     def test_def_anchor(self):
         fea = self.parse(
