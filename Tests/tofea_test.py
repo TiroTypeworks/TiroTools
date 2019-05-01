@@ -350,6 +350,8 @@ class ToFeaTest(unittest.TestCase):
             'SUB GLYPH "b"\n'
             'WITH GLYPH "b.sc"\n'
             'END_SUB\n'
+            'SUB WITH\n' # Empty substitution, will be ignored
+            'END_SUB\n'
             'END_SUBSTITUTION'
         )
         self.assertEqual(fea,
