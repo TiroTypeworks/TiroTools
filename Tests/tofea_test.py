@@ -1,6 +1,9 @@
+import os
+import unittest
+
 from volto import VoltToFea
 from io import StringIO
-import unittest
+from tempfile import NamedTemporaryFile
 
 
 class ToFeaTest(unittest.TestCase):
@@ -1063,6 +1066,32 @@ class ToFeaTest(unittest.TestCase):
                          "@aaccented_glyphs = [aacute abreve];\n"
                          "@aaccented_glyphs_ = [aacute abreve];"
         )
+
+    def test_cli_vtp(self):
+        from volto import main as volto
+
+        path, _ = os.path.split(__file__)
+        vtp = os.path.join(path, "Nutso.vtp")
+        fea = os.path.join(path, "Nutso.fea")
+        with NamedTemporaryFile(mode="r") as temp:
+            volto([vtp, temp.name])
+            res = temp.read()
+            with open(fea, mode="r") as f:
+                ref = f.read()
+            self.assertEqual(ref, res)
+
+    def test_cli_ttf(self):
+        from volto import main as volto
+
+        path, _ = os.path.split(__file__)
+        ttf = os.path.join(path, "Nutso.ttf")
+        fea = os.path.join(path, "Nutso.fea")
+        with NamedTemporaryFile(mode="r") as temp:
+            volto([ttf, temp.name])
+            res = temp.read()
+            with open(fea, mode="r") as f:
+                ref = f.read()
+            self.assertEqual(ref, res)
 
     def parse(self, text):
         return VoltToFea(StringIO(text)).convert()
