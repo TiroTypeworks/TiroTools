@@ -692,10 +692,12 @@ class ToFeaTest(unittest.TestCase):
             'IN_CONTEXT\n'
             'END_CONTEXT\n'
             'AS_POSITION\n'
-            'ATTACH_CURSIVE EXIT GLYPH "a" GLYPH "b" ENTER GLYPH "c"\n'
+            'ATTACH_CURSIVE EXIT GLYPH "a" GLYPH "b" '
+            'ENTER GLYPH "a" GLYPH "c"\n'
             'END_ATTACH\n'
             'END_POSITION\n'
             'DEF_ANCHOR "exit"  ON 1 GLYPH a COMPONENT 1 AT POS END_POS END_ANCHOR\n'
+            'DEF_ANCHOR "entry" ON 1 GLYPH a COMPONENT 1 AT POS END_POS END_ANCHOR\n'
             'DEF_ANCHOR "exit"  ON 2 GLYPH b COMPONENT 1 AT POS END_POS END_ANCHOR\n'
             'DEF_ANCHOR "entry" ON 3 GLYPH c COMPONENT 1 AT POS END_POS END_ANCHOR\n'
             )
@@ -703,8 +705,8 @@ class ToFeaTest(unittest.TestCase):
                          "\n# Lookups\n"
                          "lookup SomeLookup {\n"
                          "    lookupflag RightToLeft;\n"
+                         "    pos cursive a <anchor 0 0> <anchor 0 0>;\n"
                          "    pos cursive c <anchor 0 0> <anchor NULL>;\n"
-                         "    pos cursive a <anchor NULL> <anchor 0 0>;\n"
                          "    pos cursive b <anchor NULL> <anchor 0 0>;\n"
                          "} SomeLookup;\n"
         )
