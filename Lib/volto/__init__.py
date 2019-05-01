@@ -124,13 +124,19 @@ class VoltToFea:
                 statements.append(feature)
 
         if self._gdef:
-            gdef = ast.TableBlock("GDEF")
-            gdef.statements.append(
-                ast.GlyphClassDefStatement(self._gdef.get("BASE"),
-                                           self._gdef.get("MARK"),
-                                           self._gdef.get("LIGATURE"),
-                                           self._gdef.get("COMPONENT")))
+            classes = []
+            for name in ("BASE", "MARK", "LIGATURE", "COMPONENT"):
+                if name in self._gdef:
+                    classname = "GDEF_" + name.lower()
+                    glyphclass = ast.GlyphClassDefinition(classname,
+                                                          self._gdef[name])
+                    statements.append(glyphclass)
+                    classes.append(ast.GlyphClassName(glyphclass))
+                else:
+                    classes.append(None)
 
+            gdef = ast.TableBlock("GDEF")
+            gdef.statements.append(ast.GlyphClassDefStatement(*classes))
             statements.append(gdef)
 
         return doc

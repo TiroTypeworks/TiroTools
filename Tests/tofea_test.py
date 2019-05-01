@@ -8,8 +8,9 @@ class ToFeaTest(unittest.TestCase):
     def test_def_glyph_base(self):
         fea = self.parse('DEF_GLYPH ".notdef" ID 0 TYPE BASE END_GLYPH')
         self.assertEqual(fea,
+                         "@GDEF_base = [.notdef];\n"
                          "table GDEF {\n"
-                         "    GlyphClassDef [.notdef], , , ;\n"
+                         "    GlyphClassDef @GDEF_base, , , ;\n"
                          "} GDEF;\n"
         )
 
@@ -17,8 +18,9 @@ class ToFeaTest(unittest.TestCase):
         fea = self.parse(
             'DEF_GLYPH "glyphBase" ID 320 TYPE BASE COMPONENTS 2 END_GLYPH')
         self.assertEqual(fea,
+                         "@GDEF_base = [glyphBase];\n"
                          "table GDEF {\n"
-                         "    GlyphClassDef [glyphBase], , , ;\n"
+                         "    GlyphClassDef @GDEF_base, , , ;\n"
                          "} GDEF;\n"
         )
 
@@ -27,24 +29,27 @@ class ToFeaTest(unittest.TestCase):
         fea = self.parse(
             'DEF_GLYPH "f_f" ID 320 TYPE LIGATURE COMPONENTS 2 END_GLYPH')
         self.assertEqual(fea,
+                         "@GDEF_ligature = [f_f];\n"
                          "table GDEF {\n"
-                         "    GlyphClassDef , [f_f], , ;\n"
+                         "    GlyphClassDef , @GDEF_ligature, , ;\n"
                          "} GDEF;\n"
         )
 
     def test_def_glyph_mark(self):
         fea = self.parse('DEF_GLYPH "brevecomb" ID 320 TYPE MARK END_GLYPH')
         self.assertEqual(fea,
+                         "@GDEF_mark = [brevecomb];\n"
                          "table GDEF {\n"
-                         "    GlyphClassDef , , [brevecomb], ;\n"
+                         "    GlyphClassDef , , @GDEF_mark, ;\n"
                          "} GDEF;\n"
         )
 
     def test_def_glyph_component(self):
         fea = self.parse('DEF_GLYPH "f.f_f" ID 320 TYPE COMPONENT END_GLYPH')
         self.assertEqual(fea,
+                         "@GDEF_component = [f.f_f];\n"
                          "table GDEF {\n"
-                         "    GlyphClassDef , , , [f.f_f];\n"
+                         "    GlyphClassDef , , , @GDEF_component;\n"
                          "} GDEF;\n"
         )
 
@@ -58,8 +63,9 @@ class ToFeaTest(unittest.TestCase):
             'DEF_GLYPH "a" ID 4 UNICODE 97 TYPE BASE END_GLYPH\n'
         )
         self.assertEqual(fea,
+                         "@GDEF_base = [A a];\n"
                          "table GDEF {\n"
-                         "    GlyphClassDef [A a], , , ;\n"
+                         "    GlyphClassDef @GDEF_base, , , ;\n"
                          "} GDEF;\n"
         )
 
@@ -162,9 +168,10 @@ class ToFeaTest(unittest.TestCase):
         self.assertEqual(fea,
                          "# Glyph classes\n"
                          "@KERN_lc_a_2ND = [a-atilde b c-cdotaccent];\n"
+                         "@GDEF_base = [a agrave aacute acircumflex atilde c"
+                         " ccaron ccedilla cdotaccent];\n"
                          "table GDEF {\n"
-                         "    GlyphClassDef [a agrave aacute acircumflex"
-                         " atilde c ccaron ccedilla cdotaccent], , , ;\n"
+                         "    GlyphClassDef @GDEF_base, , , ;\n"
                          "} GDEF;\n"
         )
 
@@ -770,8 +777,9 @@ class ToFeaTest(unittest.TestCase):
                          "        ligComponent <anchor 450 450> mark @top;\n"
                          "} TestLookup;\n"
                          "\n"
+                         "@GDEF_ligature = [f_f];\n"
                          "table GDEF {\n"
-                         "    GlyphClassDef , [f_f], , ;\n"
+                         "    GlyphClassDef , @GDEF_ligature, , ;\n"
                          "} GDEF;\n"
         )
 
