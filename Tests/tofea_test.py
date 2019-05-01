@@ -312,6 +312,31 @@ class ToFeaTest(unittest.TestCase):
                          "} frac;\n"
         )
 
+    def test_lookup_comment(self):
+        fea = self.parse(
+            'DEF_LOOKUP "smcp" PROCESS_BASE PROCESS_MARKS ALL '
+            'DIRECTION LTR\n'
+            'COMMENTS "Smallcaps lookup for testing"\n'
+            'IN_CONTEXT\n'
+            'END_CONTEXT\n'
+            'AS_SUBSTITUTION\n'
+            'SUB GLYPH "a"\n'
+            'WITH GLYPH "a.sc"\n'
+            'END_SUB\n'
+            'SUB GLYPH "b"\n'
+            'WITH GLYPH "b.sc"\n'
+            'END_SUB\n'
+            'END_SUBSTITUTION'
+        )
+        self.assertEqual(fea,
+                         "\n# Lookups\n"
+                         "lookup smcp {\n"
+                         "    # Smallcaps lookup for testing\n"
+                         "    sub a by a.sc;\n"
+                         "    sub b by b.sc;\n"
+                         "} smcp;\n"
+        )
+
     def test_substitution_single(self):
         fea = self.parse(
             'DEF_LOOKUP "smcp" PROCESS_BASE PROCESS_MARKS ALL '

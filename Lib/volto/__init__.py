@@ -515,7 +515,7 @@ class VoltToFea:
             self._lookups[lookup.name.lower()] = fealookup
 
         if lookup.comments is not None:
-            fealookup.statements.append(ast.Comment(lookup.comments))
+            fealookup.statements.append(ast.Comment("# " + lookup.comments))
 
         contexts = []
         if lookup.context:
