@@ -651,6 +651,40 @@ class ToFeaTest(unittest.TestCase):
                          "} anchor_top;\n"
                 )
 
+    def test_position_attach_mkmk(self):
+        fea = self.parse(
+            'DEF_GLYPH "brevecomb" ID 1 TYPE MARK END_GLYPH\n'
+            'DEF_GLYPH "gravecomb" ID 2 TYPE MARK END_GLYPH\n'
+            'DEF_LOOKUP "anchor_top" PROCESS_BASE PROCESS_MARKS ALL '
+            'DIRECTION RTL\n'
+            'IN_CONTEXT\n'
+            'END_CONTEXT\n'
+            'AS_POSITION\n'
+            'ATTACH GLYPH "gravecomb"\n'
+            'TO GLYPH "acutecomb" AT ANCHOR "top"\n'
+            'END_ATTACH\n'
+            'END_POSITION\n'
+            'DEF_ANCHOR "MARK_top" ON 1 GLYPH acutecomb COMPONENT 1 '
+            'AT POS DX 0 DY 450 END_POS END_ANCHOR\n'
+            'DEF_ANCHOR "top" ON 2 GLYPH gravecomb COMPONENT 1 '
+            'AT POS DX 210 DY 450 END_POS END_ANCHOR\n'
+        )
+        self.assertEqual(fea,
+                         "\n# Mark classes\n"
+                         "markClass acutecomb <anchor 0 450> @top;\n"
+                         "\n"
+                         "# Lookups\n"
+                         "lookup anchor_top {\n"
+                         "    lookupflag RightToLeft;\n"
+                         "    pos mark gravecomb <anchor 210 450> mark @top;\n"
+                         "} anchor_top;\n"
+                         "\n"
+                         "@GDEF_mark = [brevecomb gravecomb];\n"
+                         "table GDEF {\n"
+                         "    GlyphClassDef , , @GDEF_mark, ;\n"
+                         "} GDEF;\n"
+                )
+
     def test_position_attach_cursive(self):
         fea = self.parse(
             'DEF_LOOKUP "SomeLookup" PROCESS_BASE PROCESS_MARKS ALL '
