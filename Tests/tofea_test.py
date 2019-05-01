@@ -261,6 +261,54 @@ class ToFeaTest(unittest.TestCase):
                          "} frac;\n"
         )
 
+    def test_feature_sub_lookups(self):
+        fea = self.parse(
+            'DEF_SCRIPT NAME "Latin" TAG "latn"\n'
+            'DEF_LANGSYS NAME "Romanian" TAG "ROM "\n'
+            'DEF_FEATURE NAME "Fractions" TAG "frac"\n'
+            'LOOKUP "fraclookup\\1"\n'
+            'LOOKUP "fraclookup\\1"\n'
+            'END_FEATURE\n'
+            'END_LANGSYS\n'
+            'END_SCRIPT\n'
+            'DEF_LOOKUP "fraclookup\\1" PROCESS_BASE PROCESS_MARKS ALL '
+            'DIRECTION RTL\n'
+            'IN_CONTEXT\n'
+            'END_CONTEXT\n'
+            'AS_SUBSTITUTION\n'
+            'SUB GLYPH "one" GLYPH "slash" GLYPH "two"\n'
+            'WITH GLYPH "one_slash_two.frac"\n'
+            'END_SUB\n'
+            'END_SUBSTITUTION\n'
+            'DEF_LOOKUP "fraclookup\\2" PROCESS_BASE PROCESS_MARKS ALL '
+            'DIRECTION RTL\n'
+            'IN_CONTEXT\n'
+            'END_CONTEXT\n'
+            'AS_SUBSTITUTION\n'
+            'SUB GLYPH "one" GLYPH "slash" GLYPH "three"\n'
+            'WITH GLYPH "one_slash_three.frac"\n'
+            'END_SUB\n'
+            'END_SUBSTITUTION'
+        )
+        self.assertEqual(fea,
+                         "\n# Lookups\n"
+                         "lookup fraclookup {\n"
+                         "    lookupflag RightToLeft;\n"
+                         "    # fraclookup\\1\n"
+                         "    sub one slash two by one_slash_two.frac;\n"
+                         "    subtable;\n"
+                         "    # fraclookup\\2\n"
+                         "    sub one slash three by one_slash_three.frac;\n"
+                         "} fraclookup;\n"
+                         "\n"
+                         "# Features\n"
+                         "feature frac {\n"
+                         "    script latn;\n"
+                         "    language ROM;\n"
+                         "    lookup fraclookup;\n"
+                         "} frac;\n"
+        )
+
     def test_substitution_single(self):
         fea = self.parse(
             'DEF_LOOKUP "smcp" PROCESS_BASE PROCESS_MARKS ALL '
