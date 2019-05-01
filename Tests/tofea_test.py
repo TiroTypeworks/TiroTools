@@ -344,6 +344,37 @@ class ToFeaTest(unittest.TestCase):
                          "} HebrewCurrency;\n"
         )
 
+    def test_substitution_single_except_context(self):
+        fea = self.parse(
+            'DEF_GROUP "Hebrew" ENUM GLYPH "uni05D0" GLYPH "uni05D1" '
+            'END_ENUM END_GROUP\n'
+            'DEF_LOOKUP "HebrewCurrency" PROCESS_BASE PROCESS_MARKS ALL '
+            'DIRECTION LTR\n'
+            'EXCEPT_CONTEXT\n'
+            'RIGHT GROUP "Hebrew"\n'
+            'RIGHT GLYPH "one.Hebr"\n'
+            'END_CONTEXT\n'
+            'IN_CONTEXT\n'
+            'LEFT GROUP "Hebrew"\n'
+            'LEFT GLYPH "one.Hebr"\n'
+            'END_CONTEXT\n'
+            'AS_SUBSTITUTION\n'
+            'SUB GLYPH "dollar"\n'
+            'WITH GLYPH "dollar.Hebr"\n'
+            'END_SUB\n'
+            'END_SUBSTITUTION'
+        )
+        self.assertEqual(fea,
+                         "# Glyph classes\n"
+                         "@Hebrew = [uni05D0 uni05D1];\n"
+                         "\n"
+                         "# Lookups\n"
+                         "lookup HebrewCurrency {\n"
+                         "    ignore sub dollar' @Hebrew one.Hebr;\n"
+                         "    sub @Hebrew one.Hebr dollar' by dollar.Hebr;\n"
+                         "} HebrewCurrency;\n"
+        )
+
     def test_substitution_skip_base(self):
         fea = self.parse(
             'DEF_GROUP "SomeMarks" ENUM GLYPH "marka" GLYPH "markb" '
