@@ -1118,6 +1118,14 @@ class ToFeaTest(unittest.TestCase):
                 ref = f.read()
             self.assertEqual(ref, res)
 
+    def test_cli_ttf_no_TSIV(self):
+        from volto import main as volto
+
+        path, _ = os.path.split(__file__)
+        ttf = os.path.join(path, "Empty.ttf")
+        with NamedTemporaryFile() as temp:
+            self.assertEqual(1, volto([ttf, temp.name]))
+
     def parse(self, text):
         return VoltToFea(StringIO(text)).convert()
 
