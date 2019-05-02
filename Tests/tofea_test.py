@@ -1,6 +1,9 @@
+import os
+import unittest
+
 from volto import VoltToFea
 from io import StringIO
-import unittest
+from tempfile import NamedTemporaryFile
 
 
 class ToFeaTest(unittest.TestCase):
@@ -8,8 +11,9 @@ class ToFeaTest(unittest.TestCase):
     def test_def_glyph_base(self):
         fea = self.parse('DEF_GLYPH ".notdef" ID 0 TYPE BASE END_GLYPH')
         self.assertEqual(fea,
+                         "@GDEF_base = [.notdef];\n"
                          "table GDEF {\n"
-                         "    GlyphClassDef [.notdef], , , ;\n"
+                         "    GlyphClassDef @GDEF_base, , , ;\n"
                          "} GDEF;\n"
         )
 
@@ -17,8 +21,9 @@ class ToFeaTest(unittest.TestCase):
         fea = self.parse(
             'DEF_GLYPH "glyphBase" ID 320 TYPE BASE COMPONENTS 2 END_GLYPH')
         self.assertEqual(fea,
+                         "@GDEF_base = [glyphBase];\n"
                          "table GDEF {\n"
-                         "    GlyphClassDef [glyphBase], , , ;\n"
+                         "    GlyphClassDef @GDEF_base, , , ;\n"
                          "} GDEF;\n"
         )
 
@@ -27,24 +32,27 @@ class ToFeaTest(unittest.TestCase):
         fea = self.parse(
             'DEF_GLYPH "f_f" ID 320 TYPE LIGATURE COMPONENTS 2 END_GLYPH')
         self.assertEqual(fea,
+                         "@GDEF_ligature = [f_f];\n"
                          "table GDEF {\n"
-                         "    GlyphClassDef , [f_f], , ;\n"
+                         "    GlyphClassDef , @GDEF_ligature, , ;\n"
                          "} GDEF;\n"
         )
 
     def test_def_glyph_mark(self):
         fea = self.parse('DEF_GLYPH "brevecomb" ID 320 TYPE MARK END_GLYPH')
         self.assertEqual(fea,
+                         "@GDEF_mark = [brevecomb];\n"
                          "table GDEF {\n"
-                         "    GlyphClassDef , , [brevecomb], ;\n"
+                         "    GlyphClassDef , , @GDEF_mark, ;\n"
                          "} GDEF;\n"
         )
 
     def test_def_glyph_component(self):
         fea = self.parse('DEF_GLYPH "f.f_f" ID 320 TYPE COMPONENT END_GLYPH')
         self.assertEqual(fea,
+                         "@GDEF_component = [f.f_f];\n"
                          "table GDEF {\n"
-                         "    GlyphClassDef , , , [f.f_f];\n"
+                         "    GlyphClassDef , , , @GDEF_component;\n"
                          "} GDEF;\n"
         )
 
@@ -58,8 +66,9 @@ class ToFeaTest(unittest.TestCase):
             'DEF_GLYPH "a" ID 4 UNICODE 97 TYPE BASE END_GLYPH\n'
         )
         self.assertEqual(fea,
+                         "@GDEF_base = [A a];\n"
                          "table GDEF {\n"
-                         "    GlyphClassDef [A a], , , ;\n"
+                         "    GlyphClassDef @GDEF_base, , , ;\n"
                          "} GDEF;\n"
         )
 
@@ -162,9 +171,10 @@ class ToFeaTest(unittest.TestCase):
         self.assertEqual(fea,
                          "# Glyph classes\n"
                          "@KERN_lc_a_2ND = [a-atilde b c-cdotaccent];\n"
+                         "@GDEF_base = [a agrave aacute acircumflex atilde c"
+                         " ccaron ccedilla cdotaccent];\n"
                          "table GDEF {\n"
-                         "    GlyphClassDef [a agrave aacute acircumflex"
-                         " atilde c ccaron ccedilla cdotaccent], , , ;\n"
+                         "    GlyphClassDef @GDEF_base, , , ;\n"
                          "} GDEF;\n"
         )
 
@@ -254,6 +264,79 @@ class ToFeaTest(unittest.TestCase):
                          "} frac;\n"
         )
 
+    def test_feature_sub_lookups(self):
+        fea = self.parse(
+            'DEF_SCRIPT NAME "Latin" TAG "latn"\n'
+            'DEF_LANGSYS NAME "Romanian" TAG "ROM "\n'
+            'DEF_FEATURE NAME "Fractions" TAG "frac"\n'
+            'LOOKUP "fraclookup\\1"\n'
+            'LOOKUP "fraclookup\\1"\n'
+            'END_FEATURE\n'
+            'END_LANGSYS\n'
+            'END_SCRIPT\n'
+            'DEF_LOOKUP "fraclookup\\1" PROCESS_BASE PROCESS_MARKS ALL '
+            'DIRECTION RTL\n'
+            'IN_CONTEXT\n'
+            'END_CONTEXT\n'
+            'AS_SUBSTITUTION\n'
+            'SUB GLYPH "one" GLYPH "slash" GLYPH "two"\n'
+            'WITH GLYPH "one_slash_two.frac"\n'
+            'END_SUB\n'
+            'END_SUBSTITUTION\n'
+            'DEF_LOOKUP "fraclookup\\2" PROCESS_BASE PROCESS_MARKS ALL '
+            'DIRECTION RTL\n'
+            'IN_CONTEXT\n'
+            'END_CONTEXT\n'
+            'AS_SUBSTITUTION\n'
+            'SUB GLYPH "one" GLYPH "slash" GLYPH "three"\n'
+            'WITH GLYPH "one_slash_three.frac"\n'
+            'END_SUB\n'
+            'END_SUBSTITUTION'
+        )
+        self.assertEqual(fea,
+                         "\n# Lookups\n"
+                         "lookup fraclookup {\n"
+                         "    lookupflag RightToLeft;\n"
+                         "    # fraclookup\\1\n"
+                         "    sub one slash two by one_slash_two.frac;\n"
+                         "    subtable;\n"
+                         "    # fraclookup\\2\n"
+                         "    sub one slash three by one_slash_three.frac;\n"
+                         "} fraclookup;\n"
+                         "\n"
+                         "# Features\n"
+                         "feature frac {\n"
+                         "    script latn;\n"
+                         "    language ROM;\n"
+                         "    lookup fraclookup;\n"
+                         "} frac;\n"
+        )
+
+    def test_lookup_comment(self):
+        fea = self.parse(
+            'DEF_LOOKUP "smcp" PROCESS_BASE PROCESS_MARKS ALL '
+            'DIRECTION LTR\n'
+            'COMMENTS "Smallcaps lookup for testing"\n'
+            'IN_CONTEXT\n'
+            'END_CONTEXT\n'
+            'AS_SUBSTITUTION\n'
+            'SUB GLYPH "a"\n'
+            'WITH GLYPH "a.sc"\n'
+            'END_SUB\n'
+            'SUB GLYPH "b"\n'
+            'WITH GLYPH "b.sc"\n'
+            'END_SUB\n'
+            'END_SUBSTITUTION'
+        )
+        self.assertEqual(fea,
+                         "\n# Lookups\n"
+                         "lookup smcp {\n"
+                         "    # Smallcaps lookup for testing\n"
+                         "    sub a by a.sc;\n"
+                         "    sub b by b.sc;\n"
+                         "} smcp;\n"
+        )
+
     def test_substitution_single(self):
         fea = self.parse(
             'DEF_LOOKUP "smcp" PROCESS_BASE PROCESS_MARKS ALL '
@@ -266,6 +349,8 @@ class ToFeaTest(unittest.TestCase):
             'END_SUB\n'
             'SUB GLYPH "b"\n'
             'WITH GLYPH "b.sc"\n'
+            'END_SUB\n'
+            'SUB WITH\n' # Empty substitution, will be ignored
             'END_SUB\n'
             'END_SUBSTITUTION'
         )
@@ -333,6 +418,37 @@ class ToFeaTest(unittest.TestCase):
                          "# Lookups\n"
                          "lookup HebrewCurrency {\n"
                          "    sub dollar' @Hebrew one.Hebr by dollar.Hebr;\n"
+                         "    sub @Hebrew one.Hebr dollar' by dollar.Hebr;\n"
+                         "} HebrewCurrency;\n"
+        )
+
+    def test_substitution_single_except_context(self):
+        fea = self.parse(
+            'DEF_GROUP "Hebrew" ENUM GLYPH "uni05D0" GLYPH "uni05D1" '
+            'END_ENUM END_GROUP\n'
+            'DEF_LOOKUP "HebrewCurrency" PROCESS_BASE PROCESS_MARKS ALL '
+            'DIRECTION LTR\n'
+            'EXCEPT_CONTEXT\n'
+            'RIGHT GROUP "Hebrew"\n'
+            'RIGHT GLYPH "one.Hebr"\n'
+            'END_CONTEXT\n'
+            'IN_CONTEXT\n'
+            'LEFT GROUP "Hebrew"\n'
+            'LEFT GLYPH "one.Hebr"\n'
+            'END_CONTEXT\n'
+            'AS_SUBSTITUTION\n'
+            'SUB GLYPH "dollar"\n'
+            'WITH GLYPH "dollar.Hebr"\n'
+            'END_SUB\n'
+            'END_SUBSTITUTION'
+        )
+        self.assertEqual(fea,
+                         "# Glyph classes\n"
+                         "@Hebrew = [uni05D0 uni05D1];\n"
+                         "\n"
+                         "# Lookups\n"
+                         "lookup HebrewCurrency {\n"
+                         "    ignore sub dollar' @Hebrew one.Hebr;\n"
                          "    sub @Hebrew one.Hebr dollar' by dollar.Hebr;\n"
                          "} HebrewCurrency;\n"
         )
@@ -644,6 +760,76 @@ class ToFeaTest(unittest.TestCase):
                          "} anchor_top;\n"
                 )
 
+    def test_position_attach_mkmk(self):
+        fea = self.parse(
+            'DEF_GLYPH "brevecomb" ID 1 TYPE MARK END_GLYPH\n'
+            'DEF_GLYPH "gravecomb" ID 2 TYPE MARK END_GLYPH\n'
+            'DEF_LOOKUP "anchor_top" PROCESS_BASE PROCESS_MARKS ALL '
+            'DIRECTION RTL\n'
+            'IN_CONTEXT\n'
+            'END_CONTEXT\n'
+            'AS_POSITION\n'
+            'ATTACH GLYPH "gravecomb"\n'
+            'TO GLYPH "acutecomb" AT ANCHOR "top"\n'
+            'END_ATTACH\n'
+            'END_POSITION\n'
+            'DEF_ANCHOR "MARK_top" ON 1 GLYPH acutecomb COMPONENT 1 '
+            'AT POS DX 0 DY 450 END_POS END_ANCHOR\n'
+            'DEF_ANCHOR "top" ON 2 GLYPH gravecomb COMPONENT 1 '
+            'AT POS DX 210 DY 450 END_POS END_ANCHOR\n'
+        )
+        self.assertEqual(fea,
+                         "\n# Mark classes\n"
+                         "markClass acutecomb <anchor 0 450> @top;\n"
+                         "\n"
+                         "# Lookups\n"
+                         "lookup anchor_top {\n"
+                         "    lookupflag RightToLeft;\n"
+                         "    pos mark gravecomb <anchor 210 450> mark @top;\n"
+                         "} anchor_top;\n"
+                         "\n"
+                         "@GDEF_mark = [brevecomb gravecomb];\n"
+                         "table GDEF {\n"
+                         "    GlyphClassDef , , @GDEF_mark, ;\n"
+                         "} GDEF;\n"
+                )
+
+    def test_position_attach_in_context(self):
+        fea = self.parse(
+            'DEF_LOOKUP "test" PROCESS_BASE PROCESS_MARKS ALL '
+            'DIRECTION RTL\n'
+            'EXCEPT_CONTEXT LEFT GLYPH "a" END_CONTEXT\n'
+            'AS_POSITION\n'
+            'ATTACH GLYPH "a"\n'
+            'TO GLYPH "acutecomb" AT ANCHOR "top" '
+            'GLYPH "gravecomb" AT ANCHOR "top"\n'
+            'END_ATTACH\n'
+            'END_POSITION\n'
+            'DEF_ANCHOR "MARK_top" ON 120 GLYPH acutecomb COMPONENT 1 '
+            'AT POS DX 0 DY 450 END_POS END_ANCHOR\n'
+            'DEF_ANCHOR "MARK_top" ON 121 GLYPH gravecomb COMPONENT 1 '
+            'AT POS DX 0 DY 450 END_POS END_ANCHOR\n'
+            'DEF_ANCHOR "top" ON 31 GLYPH a COMPONENT 1 '
+            'AT POS DX 210 DY 450 END_POS END_ANCHOR\n'
+        )
+        self.assertEqual(fea,
+                         "\n# Mark classes\n"
+                         "markClass acutecomb <anchor 0 450> @top;\n"
+                         "markClass gravecomb <anchor 0 450> @top;\n"
+                         "\n"
+                         "# Lookups\n"
+                         "lookup test_target {\n"
+                         "    pos base a <anchor 210 450> mark @top;\n"
+                         "} test_target;\n"
+                         "\n"
+                         "lookup test {\n"
+                         "    lookupflag RightToLeft;\n"
+                         "    ignore pos a [acutecomb gravecomb]';\n"
+                         "    pos [acutecomb gravecomb]' lookup test_target;\n"
+                         "} test;\n"
+        )
+
+
     def test_position_attach_cursive(self):
         fea = self.parse(
             'DEF_LOOKUP "SomeLookup" PROCESS_BASE PROCESS_MARKS ALL '
@@ -651,10 +837,12 @@ class ToFeaTest(unittest.TestCase):
             'IN_CONTEXT\n'
             'END_CONTEXT\n'
             'AS_POSITION\n'
-            'ATTACH_CURSIVE EXIT GLYPH "a" GLYPH "b" ENTER GLYPH "c"\n'
+            'ATTACH_CURSIVE EXIT GLYPH "a" GLYPH "b" '
+            'ENTER GLYPH "a" GLYPH "c"\n'
             'END_ATTACH\n'
             'END_POSITION\n'
             'DEF_ANCHOR "exit"  ON 1 GLYPH a COMPONENT 1 AT POS END_POS END_ANCHOR\n'
+            'DEF_ANCHOR "entry" ON 1 GLYPH a COMPONENT 1 AT POS END_POS END_ANCHOR\n'
             'DEF_ANCHOR "exit"  ON 2 GLYPH b COMPONENT 1 AT POS END_POS END_ANCHOR\n'
             'DEF_ANCHOR "entry" ON 3 GLYPH c COMPONENT 1 AT POS END_POS END_ANCHOR\n'
             )
@@ -662,8 +850,8 @@ class ToFeaTest(unittest.TestCase):
                          "\n# Lookups\n"
                          "lookup SomeLookup {\n"
                          "    lookupflag RightToLeft;\n"
+                         "    pos cursive a <anchor 0 0> <anchor 0 0>;\n"
                          "    pos cursive c <anchor 0 0> <anchor NULL>;\n"
-                         "    pos cursive a <anchor NULL> <anchor 0 0>;\n"
                          "    pos cursive b <anchor NULL> <anchor 0 0>;\n"
                          "} SomeLookup;\n"
         )
@@ -692,13 +880,36 @@ class ToFeaTest(unittest.TestCase):
                          "} kern1;\n"
         )
 
+    def test_position_adjust_pair_in_context(self):
+        fea = self.parse(
+            'DEF_LOOKUP "kern1" PROCESS_BASE PROCESS_MARKS ALL '
+            'DIRECTION LTR\n'
+            'EXCEPT_CONTEXT LEFT GLYPH "A" END_CONTEXT\n'
+            'AS_POSITION\n'
+            'ADJUST_PAIR\n'
+            ' FIRST GLYPH "A" FIRST GLYPH "V"\n'
+            ' SECOND GLYPH "A" SECOND GLYPH "V"\n'
+            ' 2 1 BY POS ADV -25 END_POS POS END_POS\n'
+            'END_ADJUST\n'
+            'END_POSITION\n'
+        )
+        self.assertEqual(fea,
+                         "\n# Lookups\n"
+                         "lookup kern1_target {\n"
+                         "    enum pos V A -25;\n"
+                         "} kern1_target;\n"
+                         "\n"
+                         "lookup kern1 {\n"
+                         "    ignore pos A V' A';\n"
+                         "    pos V' lookup kern1_target A' lookup kern1_target;\n"
+                         "} kern1;\n"
+        )
+
     def test_position_adjust_single(self):
         fea = self.parse(
             'DEF_LOOKUP "TestLookup" PROCESS_BASE PROCESS_MARKS ALL '
             'DIRECTION LTR\n'
             'IN_CONTEXT\n'
-            # 'LEFT GLYPH "leftGlyph"\n'
-            # 'RIGHT GLYPH "rightGlyph"\n'
             'END_CONTEXT\n'
             'AS_POSITION\n'
             'ADJUST_SINGLE'
@@ -714,6 +925,35 @@ class ToFeaTest(unittest.TestCase):
                          "    pos glyph2 <456 None 0 None>;\n"
                          "} TestLookup;\n"
         )
+
+    def test_position_adjust_single_in_context(self):
+        fea = self.parse(
+            'DEF_LOOKUP "TestLookup" PROCESS_BASE PROCESS_MARKS ALL '
+            'DIRECTION LTR\n'
+            'EXCEPT_CONTEXT\n'
+            'LEFT GLYPH "leftGlyph"\n'
+            'RIGHT GLYPH "rightGlyph"\n'
+            'END_CONTEXT\n'
+            'AS_POSITION\n'
+            'ADJUST_SINGLE'
+            ' GLYPH "glyph1" BY POS ADV 0 DX 123 END_POS\n'
+            ' GLYPH "glyph2" BY POS ADV 0 DX 456 END_POS\n'
+            'END_ADJUST\n'
+            'END_POSITION\n'
+        )
+        self.assertEqual(fea,
+                         "\n# Lookups\n"
+                         "lookup TestLookup_target {\n"
+                         "    pos glyph1 <123 None 0 None>;\n"
+                         "    pos glyph2 <456 None 0 None>;\n"
+                         "} TestLookup_target;\n"
+                         "\n"
+                         "lookup TestLookup {\n"
+                         "    ignore pos leftGlyph [glyph1 glyph2]' rightGlyph;\n"
+                         "    pos [glyph1 glyph2]' lookup TestLookup_target;\n"
+                         "} TestLookup;\n"
+        )
+
 
     def test_def_anchor(self):
         fea = self.parse(
@@ -770,8 +1010,9 @@ class ToFeaTest(unittest.TestCase):
                          "        ligComponent <anchor 450 450> mark @top;\n"
                          "} TestLookup;\n"
                          "\n"
+                         "@GDEF_ligature = [f_f];\n"
                          "table GDEF {\n"
-                         "    GlyphClassDef , [f_f], , ;\n"
+                         "    GlyphClassDef , @GDEF_ligature, , ;\n"
                          "} GDEF;\n"
         )
 
@@ -852,6 +1093,40 @@ class ToFeaTest(unittest.TestCase):
                          "@aaccented_glyphs = [aacute abreve];\n"
                          "@aaccented_glyphs_ = [aacute abreve];"
         )
+
+    def test_cli_vtp(self):
+        from volto import main as volto
+
+        path, _ = os.path.split(__file__)
+        vtp = os.path.join(path, "Nutso.vtp")
+        fea = os.path.join(path, "Nutso.fea")
+        with NamedTemporaryFile(mode="r") as temp:
+            volto([vtp, temp.name])
+            res = temp.read()
+            with open(fea, mode="r") as f:
+                ref = f.read()
+            self.assertEqual(ref, res)
+
+    def test_cli_ttf(self):
+        from volto import main as volto
+
+        path, _ = os.path.split(__file__)
+        ttf = os.path.join(path, "Nutso.ttf")
+        fea = os.path.join(path, "Nutso.fea")
+        with NamedTemporaryFile(mode="r") as temp:
+            volto([ttf, temp.name])
+            res = temp.read()
+            with open(fea, mode="r") as f:
+                ref = f.read()
+            self.assertEqual(ref, res)
+
+    def test_cli_ttf_no_TSIV(self):
+        from volto import main as volto
+
+        path, _ = os.path.split(__file__)
+        ttf = os.path.join(path, "Empty.ttf")
+        with NamedTemporaryFile() as temp:
+            self.assertEqual(1, volto([ttf, temp.name]))
 
     def parse(self, text):
         return VoltToFea(StringIO(text)).convert()
