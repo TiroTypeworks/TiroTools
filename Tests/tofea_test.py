@@ -921,8 +921,8 @@ class ToFeaTest(unittest.TestCase):
         self.assertEqual(fea,
                          "\n# Lookups\n"
                          "lookup TestLookup {\n"
-                         "    pos glyph1 <123 None 0 None>;\n"
-                         "    pos glyph2 <456 None 0 None>;\n"
+                         "    pos glyph1 <123 0 0 0>;\n"
+                         "    pos glyph2 <456 0 0 0>;\n"
                          "} TestLookup;\n"
         )
 
@@ -944,8 +944,8 @@ class ToFeaTest(unittest.TestCase):
         self.assertEqual(fea,
                          "\n# Lookups\n"
                          "lookup TestLookup_target {\n"
-                         "    pos glyph1 <123 None 0 None>;\n"
-                         "    pos glyph2 <456 None 0 None>;\n"
+                         "    pos glyph1 <123 0 0 0>;\n"
+                         "    pos glyph2 <456 0 0 0>;\n"
                          "} TestLookup_target;\n"
                          "\n"
                          "lookup TestLookup {\n"
