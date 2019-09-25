@@ -502,6 +502,55 @@ class ToFeaTest(unittest.TestCase):
                          "} SomeSub;\n"
         )
 
+    def test_substitution_process_marks_all(self):
+        fea = self.parse(
+            'DEF_GROUP "SomeMarks" ENUM GLYPH "marka" GLYPH "markb" '
+            'END_ENUM END_GROUP\n'
+            'DEF_LOOKUP "SomeSub" PROCESS_BASE PROCESS_MARKS "ALL"'
+            'DIRECTION LTR\n'
+            'IN_CONTEXT\n'
+            'END_CONTEXT\n'
+            'AS_SUBSTITUTION\n'
+            'SUB GLYPH "A"\n'
+            'WITH GLYPH "A.c2sc"\n'
+            'END_SUB\n'
+            'END_SUBSTITUTION'
+        )
+        self.assertEqual(fea,
+                         "# Glyph classes\n"
+                         "@SomeMarks = [marka markb];\n"
+                         "\n"
+                         "# Lookups\n"
+                         "lookup SomeSub {\n"
+                         "    sub A by A.c2sc;\n"
+                         "} SomeSub;\n"
+        )
+
+    def test_substitution_process_marks_none(self):
+        fea = self.parse(
+            'DEF_GROUP "SomeMarks" ENUM GLYPH "marka" GLYPH "markb" '
+            'END_ENUM END_GROUP\n'
+            'DEF_LOOKUP "SomeSub" PROCESS_BASE PROCESS_MARKS "NONE"'
+            'DIRECTION LTR\n'
+            'IN_CONTEXT\n'
+            'END_CONTEXT\n'
+            'AS_SUBSTITUTION\n'
+            'SUB GLYPH "A"\n'
+            'WITH GLYPH "A.c2sc"\n'
+            'END_SUB\n'
+            'END_SUBSTITUTION'
+        )
+        self.assertEqual(fea,
+                         "# Glyph classes\n"
+                         "@SomeMarks = [marka markb];\n"
+                         "\n"
+                         "# Lookups\n"
+                         "lookup SomeSub {\n"
+                         "    lookupflag IgnoreMarks;\n"
+                         "    sub A by A.c2sc;\n"
+                         "} SomeSub;\n"
+        )
+
     def test_substitution_skip_marks(self):
         fea = self.parse(
             'DEF_GROUP "SomeMarks" ENUM GLYPH "marka" GLYPH "markb" '
