@@ -19,7 +19,7 @@ setup(
     entry_points={
         'console_scripts': ['volto = volto:main'],
     },
-    install_requires=['fonttools>=3.41.1'],
+    install_requires=['fonttools>=4.0.2'],
     classifiers=[
         'Development Status :: 4 - Beta',
         'Environment :: Console',
