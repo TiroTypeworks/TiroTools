@@ -482,11 +482,10 @@ class VoltToFea:
         # FIXME: Does VOLT support this?
         # if not lookup.process_ligatures:
         #     flags |= 4
-        if not lookup.process_marks or lookup.process_marks == "NONE":
+        if not lookup.process_marks:
             flags |= 8
         elif isinstance(lookup.process_marks, str):
-            if lookup.process_marks != "ALL":
-                mark_attachement = self._groupName(lookup.process_marks)
+            mark_attachement = self._groupName(lookup.process_marks)
         elif lookup.mark_glyph_set is not None:
             mark_filtering = self._groupName(lookup.mark_glyph_set)
 
