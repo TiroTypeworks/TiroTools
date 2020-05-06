@@ -5,70 +5,15 @@ import sys
 
 from fontTools.misc.fixedTools import otRound
 from fontTools.ttLib import TTFont, TTLibError
-from fontTools.voltLib.lexer import Lexer
+from fontTools.voltLib.parser import Parser
 from io import StringIO
 
 log = logging.getLogger()
 pos_re = re.compile(r"POS.*?.END_POS")
 
 
-def parse_adjust_by(lexer):
-    token_type, adjust_by, _ = lexer.next()
-    assert token_type == Lexer.NUMBER
-    token_type, token, _ = lexer.next()
-    assert token_type, token == (Lexer.NAME, "AT")
-    token_type, size, _ = lexer.next()
-    assert token_type == Lexer.NUMBER
-    return adjust_by, size
-
-
-def parse_pos(data):
-    lexer = Lexer(data, None)
-    token_type, token, _ = lexer.next()
-    assert token_type, token == (Lexer.NAME, "POS")
-    adv = None
-    dx = None
-    dy = None
-    adv_adjust_by = {}
-    dx_adjust_by = {}
-    dy_adjust_by = {}
-
-    token_type, token, _ = lexer.next()
-
-    if token == "ADV":
-        token_type, adv, _ = lexer.next()
-        assert token_type == Lexer.NUMBER
-        token_type, token, _ = lexer.next()
-        while token == "ADJUST_BY":
-            adjust_by, size = parse_adjust_by()
-            adv_adjust_by[size] = adjust_by
-            token_type, token, _ = lexer.next()
-
-    if token == "DX":
-        token_type, dx, _ = lexer.next()
-        assert token_type == Lexer.NUMBER
-        token_type, token, _ = lexer.next()
-        while token == "ADJUST_BY":
-            adjust_by, size = parse_adjust_by()
-            dx_adjust_by[size] = adjust_by
-            token_type, token, _ = lexer.next()
-
-    if token == "DY":
-        token_type, dy, _ = lexer.next()
-        assert token_type == Lexer.NUMBER
-        token_type, token, _ = lexer.next()
-        while token == "ADJUST_BY":
-            adjust_by, size = parse_adjust_by()
-            dy_adjust_by[size] = adjust_by
-            token_type, token, _ = lexer.next()
-
-    assert token_type, token == (Lexer.NAME, "END_POS")
-
-    return adv, dx, dy, adv_adjust_by, dx_adjust_by, dy_adjust_by
-
-
 def replace(match, factor):
-    pos = parse_pos(match.group(0))
+    pos = Parser(StringIO(match.group(0))).parse_pos_()
 
     if not any(pos):
         return match.group(0)
