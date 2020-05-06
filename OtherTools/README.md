@@ -18,6 +18,12 @@ Usage example: to double the scale of GPOS data:
 ```
 python3 vtp-scale.py input.vtp output.vtp -f 2
 ```
+The tool can also be used on a font files containing a TSIV source table:
+
+```
+python3 vtp-scale.py input.ttf output.ttf -f 2
+```
+
 
 vtp-skew.py
 -----
@@ -31,3 +37,9 @@ vtp-skew input.vtp output.vtp -a 12
 ```
 
 To slant to the left, use a negative value.
+
+The tool can also be used on a font files containing a TSIV source table:
+
+```
+vtp-skew input.ttf output.ttf -a 12
+```
