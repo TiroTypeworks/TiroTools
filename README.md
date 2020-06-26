@@ -1,53 +1,26 @@
-[![Build Status](https://travis-ci.com/TiroTypeworks/Volto.svg?branch=master)](https://travis-ci.com/TiroTypeworks/Volto)
-
-Volto
+TiroTools
 =====
 
-MS VOLT `.vtp` to AFDKO `.fea` OpenType Layout converter.
+Assorted font production scripts, mostly involving either conversion of data between font development source formats, or manipulation of source formats.
 
-Installation
+Please see individual folder readme files for installation, usage, or dependency notes.
+
+All scripts in this repo are licensed under the MIT open source license.
+
+Current tool list
 ------------
 
-Volto requires Python 3 and FontTools, to install directly from GitHub
-repository:
-```
-pip3 install --user -U https://github.com/TiroTypeworks/Volto/archive/master.zip
-```
+### Volto
+Converts MS Visual OpenType Layout Tool (VOLT) projects to AFDKO feature file syntax.
 
-Usage
------
+### VTPtools : vtp-scale
+Scales all GPOS data in a VOLT project file.
 
-To convert a VTP project file:
-```
-volto input.vtp output.fea
-```
+### VTPtools : vtp-skew
+Adjusts rise-over-run coordinates for GPOS data in a VOLT project file to a defined slant angle.
 
-It is also possible convert font files with `TSIV` table (as saved from Volt),
-in this case the glyph names used in the Volt project will be mapped to the
-actual glyph names in the font files when written to the feature file:
-```
-volto input.ttf output.fea
-```
+### VFJtools : vfj-propagate-anchors
+Propagates anchors from base to composite glyphs in FontLab 7 .vfj sources.
 
-The `--quiet` option can be used to suppress warnings.
-
-The `--traceback` can be used to get Python traceback in case of exceptions,
-instead of suppressing the traceback.
-
-
-Limitations
------------
-
-* Not all VOLT features are supported, the script will error if it it
-  encounters something it does not understand. Please report an issue if this
-  happens.
-* AFDKO feature file syntax for mark positioning is awkward and does not allow
-  setting the mark coverage. It also defines mark anchors globally, as a result
-  some mark positioning lookups might cover many marks than what was in the VOLT
-  file. This should not be an issue in practice, but if it is then the only way
-  is to modify the VOLT file or the generated feature file manually to use unique
-  mark anchors for each lookup.
-* VOLT allows subtable breaks in any lookup type, but AFDKO feature file
-  implementations vary in their support; currently AFDKO’s makeOTF supports
-  subtable breaks in pair positioning lookups only, while FontTools’ feaLib
-  support it for most substitution lookups and only some positioning lookups.
+### VFJtools : vfj-to-volt
+Exports VOLT .vtl lookups and .vtg group sources from FontLab 7 .vfj sources.
