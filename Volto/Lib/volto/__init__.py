@@ -3,7 +3,6 @@
 import logging
 import re
 
-from collections import OrderedDict
 from io import StringIO
 
 from fontTools.ttLib import TTFont, TTLibError
@@ -35,9 +34,9 @@ class VoltToFea:
         self._glyph_order = None
 
         self._gdef = {}
-        self._glyphclasses = OrderedDict()
-        self._features = OrderedDict()
-        self._lookups = OrderedDict()
+        self._glyphclasses = {}
+        self._features = {}
+        self._lookups = {}
 
         self._marks = set()
         self._ligatures = {}
@@ -223,9 +222,9 @@ class VoltToFea:
                 lookups = {l.split("\\")[0]: True for l in feature.lookups}
                 ftag = feature.tag
                 if ftag not in self._features:
-                    self._features[ftag] = OrderedDict()
+                    self._features[ftag] = {}
                 if stag not in self._features[ftag]:
-                    self._features[ftag][stag] = OrderedDict()
+                    self._features[ftag][stag] = {}
                 assert ltag not in self._features[ftag][stag]
                 self._features[ftag][stag][ltag] = lookups.keys()
 
