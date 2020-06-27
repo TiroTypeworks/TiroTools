@@ -127,8 +127,7 @@ class VoltToFea:
             for name in ("BASE", "MARK", "LIGATURE", "COMPONENT"):
                 if name in self._gdef:
                     classname = "GDEF_" + name.lower()
-                    glyphclass = ast.GlyphClassDefinition(classname,
-                                                          self._gdef[name])
+                    glyphclass = ast.GlyphClassDefinition(classname, self._gdef[name])
                     statements.append(glyphclass)
                     classes.append(ast.GlyphClassName(glyphclass))
                 else:
@@ -241,9 +240,14 @@ class VoltToFea:
         dx_device = dx_adjust_by and dx_adjust_by.items() or None
         dy_device = dy_adjust_by and dy_adjust_by.items() or None
 
-        return ast.ValueRecord(xPlacement=dx, yPlacement=dy, xAdvance=adv,
-                               xPlaDevice=dx_device, yPlaDevice=dy_device,
-                               xAdvDevice=adv_device)
+        return ast.ValueRecord(
+            xPlacement=dx,
+            yPlacement=dy,
+            xAdvance=adv,
+            xPlaDevice=dx_device,
+            yPlaDevice=dy_device,
+            xAdvDevice=adv_device,
+        )
 
     def _anchor(self, adjustment):
         adv, dx, dy, adv_adjust_by, dx_adjust_by, dy_adjust_by = adjustment
@@ -252,9 +256,12 @@ class VoltToFea:
         dx_device = dx_adjust_by and dx_adjust_by.items() or None
         dy_device = dy_adjust_by and dy_adjust_by.items() or None
 
-        return ast.Anchor(dx or 0, dy or 0,
-                          xDeviceTable=dx_device or None,
-                          yDeviceTable=dy_device or None)
+        return ast.Anchor(
+            dx or 0,
+            dy or 0,
+            xDeviceTable=dx_device or None,
+            yDeviceTable=dy_device or None,
+        )
 
     def _anchorDefinition(self, anchordef):
         anchorname = anchordef.name
@@ -296,16 +303,19 @@ class VoltToFea:
                 record2 = self._adjustment(pos2)
                 assert len(glyphs1) == 1
                 assert len(glyphs2) == 1
-                statements.append(ast.PairPosStatement(
-                    glyphs1[0], record1, glyphs2[0], record2,
-                    enumerated=enumerated))
+                statements.append(
+                    ast.PairPosStatement(
+                        glyphs1[0], record1, glyphs2[0], record2, enumerated=enumerated
+                    )
+                )
         elif isinstance(pos, VAst.PositionAdjustSingleDefinition):
             for a, b in pos.adjust_single:
                 glyphs = self._coverage(a)
                 record = self._adjustment(b)
                 assert len(glyphs) == 1
-                statements.append(ast.SinglePosStatement(
-                    [(glyphs[0], record)], [], [], False))
+                statements.append(
+                    ast.SinglePosStatement([(glyphs[0], record)], [], [], False)
+                )
         elif isinstance(pos, VAst.PositionAttachDefinition):
             anchors = {}
             for marks, classname in pos.coverage_to:
@@ -381,8 +391,9 @@ class VoltToFea:
         else:
             raise NotImplementedError(pos)
 
-    def _gposContextLookup(self, lookup, prefix, suffix, ignore, fealookup,
-                           targetlookup):
+    def _gposContextLookup(
+        self, lookup, prefix, suffix, ignore, fealookup, targetlookup
+    ):
         statements = fealookup.statements
 
         assert not lookup.reversal
@@ -397,12 +408,12 @@ class VoltToFea:
                 glyphs = (glyphs1[0], glyphs2[0])
 
                 if ignore:
-                    statement = ast.IgnorePosStatement(
-                        [(prefix, glyphs, suffix)])
+                    statement = ast.IgnorePosStatement([(prefix, glyphs, suffix)])
                 else:
                     lookups = (targetlookup, targetlookup)
                     statement = ast.ChainContextPosStatement(
-                        prefix, glyphs, suffix, lookups)
+                        prefix, glyphs, suffix, lookups
+                    )
                 statements.append(statement)
         elif isinstance(pos, VAst.PositionAdjustSingleDefinition):
             glyphs = [ast.GlyphClass()]
@@ -414,7 +425,8 @@ class VoltToFea:
                 statement = ast.IgnorePosStatement([(prefix, glyphs, suffix)])
             else:
                 statement = ast.ChainContextPosStatement(
-                    prefix, glyphs, suffix, [targetlookup])
+                    prefix, glyphs, suffix, [targetlookup]
+                )
             statements.append(statement)
         elif isinstance(pos, VAst.PositionAttachDefinition):
             glyphs = [ast.GlyphClass()]
@@ -425,7 +437,8 @@ class VoltToFea:
                 statement = ast.IgnorePosStatement([(prefix, glyphs, suffix)])
             else:
                 statement = ast.ChainContextPosStatement(
-                    prefix, glyphs, suffix, [targetlookup])
+                    prefix, glyphs, suffix, [targetlookup]
+                )
             statements.append(statement)
         else:
             raise NotImplementedError(pos)
@@ -446,24 +459,27 @@ class VoltToFea:
                 chain_context = (prefix, glyphs, suffix)
                 statement = ast.IgnoreSubstStatement([chain_context])
             elif isinstance(sub, VAst.SubstitutionSingleDefinition):
-                assert(len(glyphs) == 1)
-                assert(len(replacements) == 1)
+                assert len(glyphs) == 1
+                assert len(replacements) == 1
                 statement = ast.SingleSubstStatement(
-                    glyphs, replacements, prefix, suffix, chain)
-            elif isinstance(sub,
-                            VAst.SubstitutionReverseChainingSingleDefinition):
-                assert(len(glyphs) == 1)
-                assert(len(replacements) == 1)
+                    glyphs, replacements, prefix, suffix, chain
+                )
+            elif isinstance(sub, VAst.SubstitutionReverseChainingSingleDefinition):
+                assert len(glyphs) == 1
+                assert len(replacements) == 1
                 statement = ast.ReverseChainSingleSubstStatement(
-                    prefix, suffix, glyphs, replacements)
+                    prefix, suffix, glyphs, replacements
+                )
             elif isinstance(sub, VAst.SubstitutionMultipleDefinition):
-                assert(len(glyphs) == 1)
+                assert len(glyphs) == 1
                 statement = ast.MultipleSubstStatement(
-                    prefix, glyphs[0], suffix, replacements, chain)
+                    prefix, glyphs[0], suffix, replacements, chain
+                )
             elif isinstance(sub, VAst.SubstitutionLigatureDefinition):
-                assert(len(replacements) == 1)
+                assert len(replacements) == 1
                 statement = ast.LigatureSubstStatement(
-                    prefix, glyphs, suffix, replacements[0], chain)
+                    prefix, glyphs, suffix, replacements[0], chain
+                )
             else:
                 raise NotImplementedError(sub)
             statements.append(statement)
@@ -489,8 +505,9 @@ class VoltToFea:
 
         lookupflags = None
         if flags or mark_attachement is not None or mark_filtering is not None:
-            lookupflags = ast.LookupFlagStatement(flags, mark_attachement,
-                                                  mark_filtering)
+            lookupflags = ast.LookupFlagStatement(
+                flags, mark_attachement, mark_filtering
+            )
         if "\\" in lookup.name:
             # Merge sub lookups as subtables (lookups named “base\sub”),
             # makeotf/feaLib will issue a warning and ignore the subtable
@@ -532,8 +549,7 @@ class VoltToFea:
         targetlookup = None
         for prefix, suffix, ignore, chain in contexts:
             if lookup.sub is not None:
-                self._gsubLookup(lookup, prefix, suffix, ignore, chain,
-                                 fealookup)
+                self._gsubLookup(lookup, prefix, suffix, ignore, chain, fealookup)
 
             if lookup.pos is not None:
                 if self._settings.get("COMPILER_USEEXTENSIONLOOKUPS"):
@@ -545,8 +561,9 @@ class VoltToFea:
                         fealookup.targets = getattr(fealookup, "targets", [])
                         fealookup.targets.append(targetlookup)
                         self._gposLookup(lookup, targetlookup)
-                    self._gposContextLookup(lookup, prefix, suffix, ignore,
-                                            fealookup, targetlookup)
+                    self._gposContextLookup(
+                        lookup, prefix, suffix, ignore, fealookup, targetlookup
+                    )
                 else:
                     self._gposLookup(lookup, fealookup)
 
@@ -554,16 +571,15 @@ class VoltToFea:
 def main(args=None):
     import argparse
 
-    parser = argparse.ArgumentParser(
-        description="Convert VOLT/VTP to feature files.")
-    parser.add_argument("input", metavar="INPUT",
-                        help="input font/VTP file to process")
-    parser.add_argument("featurefile", metavar="FEATUEFILE",
-                        help="output feature file")
-    parser.add_argument("-q", "--quiet", action='store_true',
-                        help="Suppress non-error messages")
-    parser.add_argument("--traceback", action='store_true',
-                        help="Don’t catch exceptions")
+    parser = argparse.ArgumentParser(description="Convert VOLT/VTP to feature files.")
+    parser.add_argument("input", metavar="INPUT", help="input font/VTP file to process")
+    parser.add_argument("featurefile", metavar="FEATUEFILE", help="output feature file")
+    parser.add_argument(
+        "-q", "--quiet", action="store_true", help="Suppress non-error messages"
+    )
+    parser.add_argument(
+        "--traceback", action="store_true", help="Don’t catch exceptions"
+    )
 
     options = parser.parse_args(args)
 
@@ -601,6 +617,7 @@ def main(args=None):
         feafile.write(fea)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     import sys
+
     sys.exit(main())
