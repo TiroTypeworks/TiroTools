@@ -714,8 +714,8 @@ class ToFeaTest(unittest.TestCase):
         self.assertEqual(
             fea,
             "# Glyph classes\n"
-            "@DFLT_Num_standardFigures = [zero one two];\n"
             "@DFLT_Num_numerators = [zero.numr one.numr two.numr];\n"
+            "@DFLT_Num_standardFigures = [zero one two];\n"
             "\n"
             "# Lookups\n"
             "lookup RevLookup {\n"
@@ -1187,6 +1187,19 @@ class ToFeaTest(unittest.TestCase):
         path, _ = os.path.split(__file__)
         vtp = os.path.join(path, "Nutso.vtp")
         fea = os.path.join(path, "Nutso.fea")
+        with NamedTemporaryFile(mode="r") as temp:
+            volto([vtp, temp.name])
+            res = temp.read()
+            with open(fea, mode="r") as f:
+                ref = f.read()
+            self.assertEqual(ref, res)
+
+    def test_group_order(self):
+        from volto import main as volto
+
+        path, _ = os.path.split(__file__)
+        vtp = os.path.join(path, "NamdhinggoSIL1006.vtp")
+        fea = os.path.join(path, "NamdhinggoSIL1006.fea")
         with NamedTemporaryFile(mode="r") as temp:
             volto([vtp, temp.name])
             res = temp.read()

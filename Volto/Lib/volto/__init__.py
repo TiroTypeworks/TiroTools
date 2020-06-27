@@ -22,6 +22,22 @@ class MarkClassDefinition(ast.MarkClassDefinition):
         return res
 
 
+# For sorting voltLib.ast.GlyphDefinition, see its use below.
+class Group:
+    def __init__(self, group):
+        self.name = group.name.lower()
+        self.groups = [
+            x.group.lower() for x in group.enum.enum if isinstance(x, VAst.GroupName)
+        ]
+
+    def __lt__(self, other):
+        if self.name in other.groups:
+            return True
+        if other.name in self.groups:
+            return False
+        return self.name < other.name
+
+
 class VoltToFea:
     _NOT_LOOKUP_NAME_RE = re.compile(r"[^A-Za-z_0-9.]")
     _NOT_CLASS_NAME_RE = re.compile(r"[^A-Za-z_0-9.\-]")
@@ -66,6 +82,13 @@ class VoltToFea:
         return self._class_names[name]
 
     def _collectStatements(self, doc):
+        # Collect and sort group definitions first, to make sure a group
+        # definition that references other groups comes after them since VOLT
+        # does not enforce such ordering, and feature file require it.
+        groups = [s for s in doc.statements if isinstance(s, VAst.GroupDefinition)]
+        for statement in sorted(groups, key=lambda x: Group(x)):
+            self._groupDefinition(statement)
+
         for statement in doc.statements:
             if isinstance(statement, VAst.GlyphDefinition):
                 self._glyphDefinition(statement)
@@ -74,7 +97,7 @@ class VoltToFea:
             elif isinstance(statement, VAst.SettingDefinition):
                 self._settingDefinition(statement)
             elif isinstance(statement, VAst.GroupDefinition):
-                self._groupDefinition(statement)
+                pass  # Handled above
             elif isinstance(statement, VAst.ScriptDefinition):
                 self._scriptDefinition(statement)
             elif not isinstance(statement, VAst.LookupDefinition):
