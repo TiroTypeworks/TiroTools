@@ -232,7 +232,7 @@ class VoltToFea:
         if setting.name.startswith("COMPILER_"):
             self._settings[setting.name] = setting.value
         else:
-            log.warning("Unsupported setting ignored: %s", setting.name)
+            log.warning(f"Unsupported setting ignored: {setting.name}")
 
     def _adjustment(self, adjustment):
         adv, dx, dy, adv_adjust_by, dx_adjust_by, dy_adjust_by = adjustment
@@ -437,8 +437,7 @@ class VoltToFea:
         for key, val in sub.mapping.items():
             if not key or not val:
                 path, line, column = sub.location
-                log.warning("%s:%d:%d: Ignoring empty substitution",
-                            path, line, column)
+                log.warning(f"{path}:{line}:{column}: Ignoring empty substitution")
                 continue
             statement = None
             glyphs = self._coverage(key)
@@ -591,10 +590,10 @@ def main(args=None):
         if options.traceback:
             raise
         location = getattr(e.args[0], "location", None)
-        message = '"%s" is not supported' % e
+        message = f'"{e}" is not supported'
         if location:
             path, line, column = location
-            log.error('%s:%d:%d: %s', path, line, column, message)
+            log.error(f"{path}:{line}:{column}: {message}")
         else:
             log.error(message)
         return 1
