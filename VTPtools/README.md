@@ -27,7 +27,7 @@ python3 vtp-scale.py input.ttf output.ttf -f 2
 vtp-skew.py
 -----
 
-vtp-skew.py will recalculate all GPOS data in a .vtp source file based on a slant angle, applying rise-over-run adjustments to the horizontal position of non-zero vertical positions. This is useful if creating an obliqued version of a font. *NB: assumes that default y coordinate of anchors is zero, so may not produce desired results if anchors are otherwise defined.*
+vtp-skew.py will recalculate all GPOS data in a .vtp source file based on a slant angle, applying rise-over-run adjustments to the horizontal position of non-zero vertical positions. This is useful if creating an obliqued version of a font. *NB: vtp-skew assumes that default y coordinate of anchors is zero (this is how Tiro’s Indic fonts have traditionally been made), so may not produce desired results if anchors are otherwise defined.*
 
 Usage example: to slant the GPOS data 12° to the right:
 

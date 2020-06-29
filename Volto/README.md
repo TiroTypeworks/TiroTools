@@ -6,16 +6,23 @@ MS VOLT `.vtp` to AFDKO `.fea` OpenType Layout converter. Volto was written for 
 Installation
 ------------
 
-Volto requires Python 3 and FontTools, to install directly from GitHub
-repository:
+Volto requires Python 3 and FontTools. To install, first clone the TiroTools repo:
+
 ```
-pip3 install --user -U https://github.com/TiroTypeworks/Volto/archive/master.zip
+git clone https://github.com/TiroTypeworks/TiroTools
+```
+
+Then use:
+
+```   
+pip3 install TiroTools/Volto
 ```
 
 Usage
 -----
 
 To convert a VTP project file:
+
 ```
 volto input.vtp output.fea
 ```
@@ -23,6 +30,7 @@ volto input.vtp output.fea
 It is also possible convert font files with `TSIV` table (as saved from Volt),
 in this case the glyph names used in the Volt project will be mapped to the
 actual glyph names in the font files when written to the feature file:
+
 ```
 volto input.ttf output.fea
 ```

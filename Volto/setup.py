@@ -9,7 +9,7 @@ setup(
     description='MS VOLT .vtp to AFDKO .fea OpenType Layout converter',
     long_description=long_description,
     long_description_content_type='text/markdown',
-    url='https://github.com/TiroTypeworks/Volto',
+    url='https://github.com/TiroTypeworks/TiroTools/Volto',
     author='Khaled Hosny',
     author_email='khaledhosny@eglug.org',
     license='MIT',
