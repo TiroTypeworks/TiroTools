@@ -11,7 +11,7 @@ These tools require Python 3 and the vfj.py module (note: the latter is not yet 
 vfj-propagate-anchors.py
 -----
 
-vfj-propagate-anchors.py will propoagate mark attachment anchors in a .vfj file to composite glyphs based on existing mark-to-base and mark-to-mark anchors.
+vfj-propagate-anchors.py will propagate mark attachment anchors in a .vfj file to composite glyphs based on existing mark-to-base and mark-to-mark anchors.
 
 Usage example:
 
