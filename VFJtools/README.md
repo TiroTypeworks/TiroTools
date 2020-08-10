@@ -22,15 +22,27 @@ python3 vfj-propagate-anchors.py input.vfj output.vfj
 vfj-to-volt.py
 -----
 
-vfj-to-volt.py will write MS VOLT format sources from a .vfj file. Currently, this only supports mark and mkmk feature anchor attachment lookups and associated groups. Output is .vtl lookup and .vtg. group file for import into VOLT projects.
+vfj-to-volt.py will write MS VOLT format sources from a .vfj file. Currently, this only supports mark and mkmk feature anchor attachment, and kern feature lookups and associated groups. Output is .vtl lookup and .vtg group files for import into VOLT projects.
 
 vfj-to-volt.py uses glyph category entries in the .vfj source to identify marks, and hence to distinguish anchors to use in the discrete mark or mkmk lookups.
 
 If a .vfj contains multiple masters, vfj-to-volt.py will write lookups and groups for each master.
 
 
-Usage example:
+Usage example, to produce anchor files:
 
 ```
 python3 vfj-to-volt.py input.vfj --anchors
+```
+
+To produce kerning files:
+
+```
+python3 vfj-to-volt.py input.vfj --kerning
+```
+
+To do both at the same time:
+
+```
+python3 vfj-to-volt.py input.vfj --anchors --kerning
 ```

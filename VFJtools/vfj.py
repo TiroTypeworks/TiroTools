@@ -1,4 +1,5 @@
 import json
+from datetime import datetime
 from fontTools.misc.transform import Identity
 
 
@@ -83,10 +84,16 @@ class Layer:
         self.data = data
         self.glyph = glyph
         self.name = data.get('name')
+        self.advanceWidth = data.get('advanceWidth')
         self.anchors = Anchors(data.get('anchors', []))
 
         elements = data.get('elements', [])
         self.components = [Component(e) for e in elements if e.get('component')]
+        self.contours = []
+        for element in elements:
+            contours = element.get('elementData', {}).get('contours', [])
+            self.contours.extend(c['nodes'] for c in contours)
+
         self._anchorsPropagated = False
 
     def _addAnchors(self, name):
@@ -171,9 +178,7 @@ class Glyph:
         self.name = data.get('name')
         self.openTypeGlyphClass = data.get('openTypeGlyphClass')
         self.layers = Layers(data.get('layers', []), self)
-        self.unicode = data.get('unicode')
-        if self.unicode:
-            self.unicode = [int(u, 16) for u in self.unicode.split(',')]
+        self.unicode = [int(u, 16) for u in data.get('unicode', '').split(',') if u]
 
     def propagateAnchors(self):
         for layer in self.layers:
@@ -183,12 +188,33 @@ class Glyph:
         return f'<{self.__class__.__name__} "{self.name}">'
 
 
+class KerningClass:
+    def __init__(self, data):
+        self.name = data.get('name')
+        self.first = data.get('1st')
+        self.names = data.get('names')
+
+
+class Kerning:
+    def __init__(self, data):
+        self.data = data
+        self.classes = [KerningClass(k) for k in data.get('kerningClasses', [])]
+        self.pairs = data.get('pairs', {})
+        for left in self.pairs:
+            for right in self.pairs[left]:
+                value = float(self.pairs[left][right])
+                self.pairs[left][right] = value
+
+
 class Master:
     def __init__(self, data, font=None):
         self.font = font
         self.data = data['fontMaster']
-        self.name = self.data.get('name')
-        self.psn = self.data.get('psn')
+
+        for key, value in self.data.items():
+            setattr(self, key, value)
+
+        self.kerning = Kerning(self.kerning)
 
     def __repr__(self):
         return f'<{self.__class__.__name__} "{self.name}">'
@@ -197,7 +223,10 @@ class Master:
 class Info:
     def __init__(self, data):
         self.data = data
-        self.tfn = data.get('tfn')
+        for key, value in data.items():
+            setattr(self, key, value)
+
+        self.creationDate = datetime.strptime(self.creationDate, '%Y/%m/%d %H:%M:%S')
 
     def __repr__(self):
         return f'<{self.__class__.__name__} "{self.tfn}">'
@@ -219,6 +248,7 @@ class Font:
         self.masters = [Master(m, self) for m in data.get('masters', [])]
 
         self.info = Info(data.get('info'))
+        self.upm = data.get('upm', 1000)
 
     def propagateAnchors(self):
         for glyph in self:
