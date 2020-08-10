@@ -26,6 +26,8 @@ vfj-to-volt.py will write MS VOLT format sources from a .vfj file. Currently, th
 
 vfj-to-volt.py uses glyph category entries in the .vfj source to identify marks, and hence to distinguish anchors to use in the discrete mark or mkmk lookups.
 
+When writing kerning lookups, vfj-to-volt.py will write \PP1 and \PP2 lookups for exception and class kerning, respectively.
+
 If a .vfj contains multiple masters, vfj-to-volt.py will write lookups and groups for each master.
 
 
