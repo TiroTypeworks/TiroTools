@@ -14,7 +14,7 @@ def _pair_lookup(name):
     return ast.LookupDefinition(
         name,
         True,
-        True,
+        False,
         None,
         'LTR',
         False,
