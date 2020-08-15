@@ -256,7 +256,7 @@ def exportVoltKerning(font):
                     lookup.pos.coverages_2.append(right)
                 id2 = lookup.pos.coverages_2.index(right) + 1
 
-                pos = ast.Pos(otRound(value), None, None, {}, {}, {})
+                pos = ast.Pos(otRound(float(value)), None, None, {}, {}, {})
                 lookup.pos.adjust_pair[(id1, id2)] = (pos, nullpos)
 
         _warn_overlapping_classes(master, groups)

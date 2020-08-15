@@ -200,10 +200,6 @@ class Kerning:
         self.data = data
         self.classes = [KerningClass(k) for k in data.get('kerningClasses', [])]
         self.pairs = data.get('pairs', {})
-        for left in self.pairs:
-            for right in self.pairs[left]:
-                value = float(self.pairs[left][right])
-                self.pairs[left][right] = value
 
 
 class Master:
