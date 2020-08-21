@@ -133,12 +133,11 @@ class VoltToFea:
                 feature = ast.FeatureBlock(ftag)
                 stags = sorted(scripts, key=lambda k: 0 if k == "DFLT" else 1)
                 for stag in stags:
-                    script = ast.ScriptStatement(stag)
-                    langs = scripts[stag]
-                    feature.statements.append(script)
-                    for ltag, lookups in langs.items():
-                        lang = ast.LanguageStatement(ltag)
-                        feature.statements.append(lang)
+                    feature.statements.append(ast.ScriptStatement(stag))
+                    ltags = sorted(scripts[stag], key=lambda k: 0 if k == "dflt" else 1)
+                    for ltag in ltags:
+                        feature.statements.append(ast.LanguageStatement(ltag))
+                        lookups = scripts[stag][ltag]
                         for name in lookups:
                             lookup = self._lookups[name.lower()]
                             lookupref = ast.LookupReferenceStatement(lookup)
