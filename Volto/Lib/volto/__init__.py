@@ -12,6 +12,8 @@ from fontTools.voltLib.parser import Parser as VoltParser
 
 log = logging.getLogger()
 
+TABLES = ["GDEF", "GSUB", "GPOS"]
+
 
 class MarkClassDefinition(ast.MarkClassDefinition):
     def asFea(self, indent=""):
@@ -81,7 +83,7 @@ class VoltToFea:
             self._class_names[name] = res
         return self._class_names[name]
 
-    def _collectStatements(self, doc):
+    def _collectStatements(self, doc, tables):
         # Collect and sort group definitions first, to make sure a group
         # definition that references other groups comes after them since VOLT
         # does not enforce such ordering, and feature file require it.
@@ -93,7 +95,8 @@ class VoltToFea:
             if isinstance(statement, VAst.GlyphDefinition):
                 self._glyphDefinition(statement)
             elif isinstance(statement, VAst.AnchorDefinition):
-                self._anchorDefinition(statement)
+                if "GPOS" in tables:
+                    self._anchorDefinition(statement)
             elif isinstance(statement, VAst.SettingDefinition):
                 self._settingDefinition(statement)
             elif isinstance(statement, VAst.GroupDefinition):
@@ -107,9 +110,13 @@ class VoltToFea:
         # and mark classes that might be defined after them.
         for statement in doc.statements:
             if isinstance(statement, VAst.LookupDefinition):
+                if statement.pos and "GPOS" not in tables:
+                    continue
+                if statement.sub and "GSUB" not in tables:
+                    continue
                 self._lookupDefinition(statement)
 
-    def _buildFeatureFile(self):
+    def _buildFeatureFile(self, tables):
         doc = ast.FeatureFile()
         statements = doc.statements
 
@@ -127,9 +134,21 @@ class VoltToFea:
                 statements.extend(getattr(lookup, "targets", []))
                 statements.append(lookup)
 
-        if self._features:
+        # Prune features
+        features = self._features.copy()
+        for ftag in features:
+            scripts = features[ftag]
+            for stag in scripts:
+                langs = scripts[stag]
+                for ltag in langs:
+                    langs[ltag] = [l for l in langs[ltag] if l.lower() in self._lookups]
+                scripts[stag] = {t: l for t, l in langs.items() if l}
+            features[ftag] = {t: s for t, s in scripts.items() if s}
+        features = {t: f for t, f in features.items() if f}
+
+        if features:
             statements.append(ast.Comment("# Features"))
-            for ftag, scripts in self._features.items():
+            for ftag, scripts in features.items():
                 feature = ast.FeatureBlock(ftag)
                 stags = sorted(scripts, key=lambda k: 0 if k == "DFLT" else 1)
                 for stag in stags:
@@ -137,14 +156,13 @@ class VoltToFea:
                     ltags = sorted(scripts[stag], key=lambda k: 0 if k == "dflt" else 1)
                     for ltag in ltags:
                         feature.statements.append(ast.LanguageStatement(ltag))
-                        lookups = scripts[stag][ltag]
-                        for name in lookups:
+                        for name in scripts[stag][ltag]:
                             lookup = self._lookups[name.lower()]
                             lookupref = ast.LookupReferenceStatement(lookup)
                             feature.statements.append(lookupref)
                 statements.append(feature)
 
-        if self._gdef:
+        if self._gdef and "GDEF" in tables:
             classes = []
             for name in ("BASE", "MARK", "LIGATURE", "COMPONENT"):
                 if name in self._gdef:
@@ -161,14 +179,14 @@ class VoltToFea:
 
         return doc
 
-    def convert(self):
+    def convert(self, tables=None):
         doc = VoltParser(self._file_or_path).parse()
 
         if self._font is not None:
             self._glyph_order = self._font.getGlyphOrder()
 
-        self._collectStatements(doc)
-        fea = self._buildFeatureFile()
+        self._collectStatements(doc, tables)
+        fea = self._buildFeatureFile(tables)
         return fea.asFea()
 
     def _glyphName(self, glyph):
@@ -597,6 +615,14 @@ def main(args=None):
     parser.add_argument("input", metavar="INPUT", help="input font/VTP file to process")
     parser.add_argument("featurefile", metavar="FEATUEFILE", help="output feature file")
     parser.add_argument(
+        "-t",
+        "--table",
+        action="append",
+        choices=TABLES,
+        dest="tables",
+        help="List of tables to write, by default all tables are written",
+    )
+    parser.add_argument(
         "-q", "--quiet", action="store_true", help="Suppress non-error messages"
     )
     parser.add_argument(
@@ -621,9 +647,10 @@ def main(args=None):
     except TTLibError:
         pass
 
+    tables = options.tables or TABLES
     converter = VoltToFea(file_or_path, font)
     try:
-        fea = converter.convert()
+        fea = converter.convert(tables)
     except NotImplementedError as e:
         if options.traceback:
             raise
