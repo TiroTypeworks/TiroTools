@@ -32,7 +32,7 @@ vtp-skew.py will recalculate all GPOS data in a .vtp source file based on a slan
 Usage example: to slant the GPOS data 12° to the right:
 
 ```
-vtp-skew input.vtp output.vtp -a 12
+python3 vtp-skew.py input.vtp output.vtp -a 12
 ```
 
 To slant to the left, use a negative value.
@@ -40,5 +40,5 @@ To slant to the left, use a negative value.
 The tool can also be used on a font files containing a TSIV source table:
 
 ```
-vtp-skew input.ttf output.ttf -a 12
+python3 vtp-skew.py input.ttf output.ttf -a 12
 ```
