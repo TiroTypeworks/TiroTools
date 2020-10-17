@@ -43,7 +43,7 @@ class Anchor:
     def __init__(self, data):
         self.data = data
         self.name = data.get('name')
-        self.x, self.y = [float(v) for v in data.get('point').split()]
+        self.x, self.y = [float(v) for v in data.get('point', '0 0').split()]
 
     def __repr__(self):
         name, x, y = self.name, self.x, self.y
