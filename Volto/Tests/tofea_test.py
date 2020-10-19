@@ -177,7 +177,7 @@ class ToFeaTest(unittest.TestCase):
         self.assertEqual(
             fea,
             "# Glyph classes\n"
-            "@KERN_lc_a_2ND = [a-atilde b c-cdotaccent];\n"
+            "@KERN_lc_a_2ND = [a - atilde b c - cdotaccent];\n"
             "@GDEF_base = [a agrave aacute acircumflex atilde c"
             " ccaron ccedilla cdotaccent];\n"
             "table GDEF {\n"
@@ -790,7 +790,7 @@ class ToFeaTest(unittest.TestCase):
             fea,
             "\n# Lookups\n"
             "lookup numr {\n"
-            "    rsub zero-nine' [fraction zero.numr-nine.numr] by zero.numr-nine.numr;\n"
+            "    rsub zero - nine' [fraction zero.numr - nine.numr] by zero.numr - nine.numr;\n"
             "} numr;\n",
         )
 
