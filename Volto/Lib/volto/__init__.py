@@ -182,6 +182,8 @@ class VoltToFea:
     def convert(self, tables=None):
         doc = VoltParser(self._file_or_path).parse()
 
+        if tables is None:
+            tables = TABLES
         if self._font is not None:
             self._glyph_order = self._font.getGlyphOrder()
 
@@ -647,10 +649,9 @@ def main(args=None):
     except TTLibError:
         pass
 
-    tables = options.tables or TABLES
     converter = VoltToFea(file_or_path, font)
     try:
-        fea = converter.convert(tables)
+        fea = converter.convert(options.tables)
     except NotImplementedError as e:
         if options.traceback:
             raise
