@@ -111,7 +111,6 @@ class ToFeaTest(unittest.TestCase):
             "@TestGroup = [@Group1 @Group2];",
         )
 
-    @unittest.skip("Group reference before definition is not allowed in feature files")
     def test_def_group_groups_not_yet_defined(self):
         fea = self.parse(
             'DEF_GROUP "Group1"\n'
@@ -134,10 +133,10 @@ class ToFeaTest(unittest.TestCase):
             fea,
             "# Glyph classes\n"
             "@Group1 = [a b c d];\n"
+            "@Group2 = [e f g h];\n"
             "@TestGroup1 = [@Group1 @Group2];\n"
             "@TestGroup2 = [@Group2];\n"
-            "@TestGroup3 = [@Group2 @Group1];\n"
-            "@Group2 = [e f g h];",
+            "@TestGroup3 = [@Group2 @Group1];"
         )
 
     def test_def_group_glyphs_and_group(self):
