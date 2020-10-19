@@ -9,4 +9,4 @@ install:
   - pip install Volto/
 
 script:
-  - pytest Volto
+  - pytest
