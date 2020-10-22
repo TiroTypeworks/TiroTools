@@ -47,13 +47,13 @@ def replace(match, factor):
 
 def main(args=None):
     parser = argparse.ArgumentParser(
-        description="Scale positioning data in VOLT/VTP files.")
-    parser.add_argument("input", metavar="INPUT",
-                        help="input font/VTP file to process")
-    parser.add_argument("output", metavar="OUTPUT",
-                        help="output font/VTP file")
-    parser.add_argument("-f", "--factor", type=float, required=True,
-                        help="the scale factor")
+        description="Scale positioning data in VOLT/VTP files."
+    )
+    parser.add_argument("input", metavar="INPUT", help="input font/VTP file to process")
+    parser.add_argument("output", metavar="OUTPUT", help="output font/VTP file")
+    parser.add_argument(
+        "-f", "--factor", type=float, required=True, help="the scale factor"
+    )
 
     options = parser.parse_args(args)
 
@@ -79,5 +79,5 @@ def main(args=None):
             f.write(outdata)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     sys.exit(main())

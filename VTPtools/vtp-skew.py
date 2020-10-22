@@ -35,26 +35,28 @@ def replace(match, transform):
             for at, adjust_by in dy_adjust_by.items():
                 pos += f" ADJUST_BY {adjust_by} AT {at}"
 
-        return (f'DEF_ANCHOR "{anchor.name}" '
-                f'ON {anchor.gid} '
-                f'GLYPH {anchor.glyph_name} '
-                f'COMPONENT {anchor.component} '
-                f'{anchor.locked and "LOCKED " or ""}'
-                f'AT  '
-                f'POS{pos} END_POS '
-                f'END_ANCHOR')
+        return (
+            f'DEF_ANCHOR "{anchor.name}" '
+            f"ON {anchor.gid} "
+            f"GLYPH {anchor.glyph_name} "
+            f"COMPONENT {anchor.component} "
+            f'{anchor.locked and "LOCKED " or ""}'
+            f"AT  "
+            f"POS{pos} END_POS "
+            f"END_ANCHOR"
+        )
     return match.group(0)
 
 
 def main(args=None):
     parser = argparse.ArgumentParser(
-        description="Transform X anchor positions in VOLT/VTP files.")
-    parser.add_argument("input", metavar="INPUT",
-                        help="input font/VTP file to process")
-    parser.add_argument("output", metavar="OUTPUT",
-                        help="output font/VTP file")
-    parser.add_argument("-a", "--angle", type=float, required=True,
-                        help="the slant angle (in degrees)")
+        description="Transform X anchor positions in VOLT/VTP files."
+    )
+    parser.add_argument("input", metavar="INPUT", help="input font/VTP file to process")
+    parser.add_argument("output", metavar="OUTPUT", help="output font/VTP file")
+    parser.add_argument(
+        "-a", "--angle", type=float, required=True, help="the slant angle (in degrees)"
+    )
 
     options = parser.parse_args(args)
 
@@ -70,7 +72,7 @@ def main(args=None):
         with open(options.input) as f:
             indata = f.read()
 
-    transform = Identity.skew(options.angle * math.pi/180)
+    transform = Identity.skew(options.angle * math.pi / 180)
     outdata = anchor_re.sub(lambda m: replace(m, transform), indata)
 
     if font is not None:
@@ -81,5 +83,5 @@ def main(args=None):
             f.write(outdata)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     sys.exit(main())
