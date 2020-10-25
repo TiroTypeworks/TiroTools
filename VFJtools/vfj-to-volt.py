@@ -108,15 +108,16 @@ def exportVoltAnchors(font):
                 else:
                     # Base anchor.
                     name, comp = anchor.name, 1
+                    lookupname = f'mark_{name}'
                     if '_' in name:
                         # Split ligature anchor (e.g. “top_1” and use the
                         # number for ligature component.
                         name, comp = name.split('_')
+                        lookupname = f'mark_{name}_ligs'
 
-                    lookupname = fr'mark_{name}'
                     if glyph.openTypeGlyphClass == 3:
                         # If this is a mark glyph, then add to mkmk lookup.
-                        lookupname = fr'mkmk_{name}'
+                        lookupname = f'mkmk_{name}'
 
                     # Add the glyph to respective lookup.
                     if lookupname not in lookups:
