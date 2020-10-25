@@ -43,7 +43,25 @@ class Anchor:
     def __init__(self, data):
         self.data = data
         self.name = data.get('name')
-        self.x, self.y = [float(v) for v in data.get('point', '0 0').split()]
+        self._x, self._y = [float(v) for v in data.get('point', '0 0').split()]
+
+    @property
+    def x(self):
+        return self._x
+
+    @x.setter
+    def x(self, x):
+        self._x = x
+        self.data['point'] = f'{x} {self.y}'
+
+    @property
+    def y(self):
+        return self._y
+
+    @y.setter
+    def y(self, y):
+        self._y = y
+        self.data['point'] = f'{self.x} {y}'
 
     def __repr__(self):
         name, x, y = self.name, self.x, self.y
