@@ -54,6 +54,17 @@ def exportVoltAnchors(font):
                 if not name.startswith('_') and glyph.openTypeGlyphClass == 3:
                     mkmk.add(name.split('_')[0])
 
+        # Collect anchors that need ligature lookups (anchor with index).
+        ligs = set()
+        for glyph in font:
+            layer = glyph.layers[master.name]
+            for anchor in layer.anchors:
+                name = anchor.name
+                if name.startswith('_'):
+                    name = name[1:]
+                if '_' in name:
+                    ligs.add(name.split('_')[0])
+
         lookups = {}
         groups = {}
         anchors = []
@@ -77,11 +88,13 @@ def exportVoltAnchors(font):
                     groups[group].add(glyph.name)
 
                     # mkmk anchors are added to both mark and mkmk lookups
-                    # because they might be use with non-mark bases after
+                    # because they might be used with non-mark bases after
                     # anchor propagation.
-                    lookupnames = [fr'mark_{name}']
+                    lookupnames = [f'mark_{name}']
                     if name in mkmk:
-                        lookupnames.append(fr'mkmk_{name}')
+                        lookupnames.append(f'mkmk_{name}')
+                    if name in ligs:
+                        lookupnames.append(f'mark_{name}_ligs')
 
                     # Add the glyph to respective lookup(s).
                     for lookupname in lookupnames:
