@@ -9,32 +9,28 @@ from vfj import Font
 
 def process(font, positions):
     offsets = {}
-    for glyph in font:
+    for name in positions:
+        gname, x, y = positions[name]
+        glyph = font[gname]
         for layer in glyph.layers:
+            if layer.name not in offsets:
+                offsets[layer.name] = {}
             for anchor in layer.anchors:
-                if not anchor.name.startswith("_"):
-                    continue
-
-                name = anchor.name[1:]
-
-                if name not in positions:
-                    continue
-
-                x, y = positions[name]
-                xoff, yoff = x - anchor.x, y - anchor.y
-                anchor.x += xoff
-                anchor.y += yoff
-
-                if name not in offsets:
-                    offsets[name] = (xoff, yoff)
+                if anchor.name == name:
+                    xoff, yoff = x - anchor.x, y - anchor.y
+                    offsets[layer.name][name[1:]] = (xoff, yoff)
 
     for glyph in font:
         for layer in glyph.layers:
             for anchor in layer.anchors:
-                if anchor.name not in offsets:
+                name = anchor.name
+                if name.startswith("_"):
+                    name = name[1:]
+
+                if name not in offsets[layer.name]:
                     continue
 
-                xoff, yoff = offsets[anchor.name]
+                xoff, yoff = offsets[layer.name][name]
                 anchor.x += xoff
                 anchor.y += yoff
 
@@ -58,7 +54,7 @@ def main(args=None):
     font = Font(options.input)
     with open(options.positions) as f:
         reader = csv.reader(f)
-        positions = {row[0]: (int(row[1]), int(row[2])) for row in reader}
+        positions = {row[0]: (row[1], int(row[2]), int(row[3])) for row in reader}
 
     process(font, positions)
 
