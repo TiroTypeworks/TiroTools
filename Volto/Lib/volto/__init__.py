@@ -155,7 +155,8 @@ class VoltToFea:
                     feature.statements.append(ast.ScriptStatement(stag))
                     ltags = sorted(scripts[stag], key=lambda k: 0 if k == "dflt" else 1)
                     for ltag in ltags:
-                        feature.statements.append(ast.LanguageStatement(ltag))
+                        include_default = True if ltag == "dflt" else False
+                        feature.statements.append(ast.LanguageStatement(ltag, include_default=include_default))
                         for name in scripts[stag][ltag]:
                             lookup = self._lookups[name.lower()]
                             lookupref = ast.LookupReferenceStatement(lookup)

@@ -264,7 +264,7 @@ class ToFeaTest(unittest.TestCase):
             "# Features\n"
             "feature frac {\n"
             "    script latn;\n"
-            "    language ROM;\n"
+            "    language ROM exclude_dflt;\n"
             "    lookup fraclookup;\n"
             "} frac;\n",
         )
@@ -313,7 +313,7 @@ class ToFeaTest(unittest.TestCase):
             "# Features\n"
             "feature frac {\n"
             "    script latn;\n"
-            "    language ROM;\n"
+            "    language ROM exclude_dflt;\n"
             "    lookup fraclookup;\n"
             "} frac;\n",
         )
