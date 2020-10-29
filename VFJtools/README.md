@@ -8,6 +8,18 @@ Dependencies
 
 These tools require Python 3 and the vfj.py module (note: the latter is not yet a general purpose module, and only implements those things needed for the current scripts).
 
+vfj-propagate-anchors.py
+-----
+
+vfj-propagate-anchors.py will propagate mark attachment anchors in a .vfj file to composite glyphs based on existing mark-to-base and mark-to-mark anchors.
+
+Usage example:
+
+```
+python3 vfj-propagate-anchors.py input.vfj output.vfj
+```
+Note: if a composite glyph consists of multiple base glyphs, the script will produce multiple instances of mark-to-base anchors with the suffix _1, _2, etc. corresponding to the component order. These may not display in FontLab 7, but will be written as mark-to-ligature anchor lookups if the vfj-to-volt tool is subsequently used.
+
 vfj-redefine-anchors
 -----
 
@@ -32,17 +44,6 @@ _top,dieresiscomb,-200,450
 ```
 
 Note: the x,y position should be the new anchor location, not the delta from the current location (which will be calculated by the script and applied to matching and corresponding anchors), and the CSV should only redefine each anchor once, on a single key glyph. The key glyph can be any mark glyph that has the named anchor.
-
-vfj-propagate-anchors.py
------
-
-vfj-propagate-anchors.py will propagate mark attachment anchors in a .vfj file to composite glyphs based on existing mark-to-base and mark-to-mark anchors.
-
-Usage example:
-
-```
-python3 vfj-propagate-anchors.py input.vfj output.vfj
-```
 
 vfj-to-volt.py
 -----
