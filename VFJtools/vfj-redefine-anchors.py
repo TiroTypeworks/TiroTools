@@ -11,6 +11,11 @@ logging.basicConfig(format="%(levelname)s: %(message)s")
 log = logging.getLogger()
 
 
+def debom(string):
+    """Strip BOM from strings."""
+    return string.encode("utf-8").decode("utf-8-sig")
+
+
 def process(font, positions):
     offsets = {}
     for name in positions:
@@ -78,6 +83,7 @@ def main(args=None):
                 )
                 continue
 
+            row = [debom(c) for c in row]
             positions[row[0]] = (row[1], int(row[2]), int(row[3]))
 
     process(font, positions)
