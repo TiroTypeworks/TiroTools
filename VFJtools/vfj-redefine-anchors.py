@@ -42,6 +42,8 @@ def process(font, positions):
                 name = anchor.name
                 if name.startswith("_"):
                     name = name[1:]
+                elif "_" in name:
+                    name, _ = name.split("_", 2)
 
                 if name not in offsets[layer.name]:
                     continue
