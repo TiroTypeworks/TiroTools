@@ -28,12 +28,21 @@ def process(font, positions):
         for layer in glyph.layers:
             if layer.name not in offsets:
                 offsets[layer.name] = {}
-            assert name[1:] not in offsets[layer.name]
+
+            basename = name
+            if name.startswith("_"):
+                basename = name[1:]
+
+            if basename in offsets[layer.name]:
+                log.error(f"Anchor '{basename}' already processed")
+                return False
+
             for anchor in layer.anchors:
                 if anchor.name == name:
                     xoff, yoff = x - anchor.x, y - anchor.y
-                    offsets[layer.name][name[1:]] = (xoff, yoff)
-            if name[1:] not in offsets[layer.name]:
+                    offsets[layer.name][basename] = (xoff, yoff)
+
+            if basename not in offsets[layer.name]:
                 log.warning(f"Glyph '{gname}' does not have anchor named '{name}'")
 
     for glyph in font:
@@ -51,6 +60,8 @@ def process(font, positions):
                 xoff, yoff = offsets[layer.name][name]
                 anchor.x += xoff
                 anchor.y += yoff
+
+    return True
 
 
 def main(args=None):
@@ -88,7 +99,8 @@ def main(args=None):
             row = [debom(c) for c in row]
             positions[row[0]] = (row[1], int(row[2]), int(row[3]))
 
-    process(font, positions)
+    if not process(font, positions):
+        return 2
 
     font.save(options.output)
 
