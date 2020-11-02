@@ -22,5 +22,8 @@ Adjusts rise-over-run coordinates for GPOS data in a VOLT project file to a defi
 ### VFJtools : vfj-propagate-anchors
 Propagates anchors from base to composite glyphs in FontLab 7 .vfj sources.
 
+### VFJtools : vfj-redefine-anchors
+Redefines anchor locations while retaining relative position of anchored marks to bases, ligatures, and other marks.
+
 ### VFJtools : vfj-to-volt
 Exports VOLT .vtl lookups and .vtg group sources from FontLab 7 .vfj sources.
