@@ -37,7 +37,10 @@ class Group:
             return True
         if other.name in self.groups:
             return False
-        return self.name < other.name
+        if self.groups and not other.groups:
+            return False
+        if not self.groups and other.groups:
+            return True
 
 
 class VoltToFea:

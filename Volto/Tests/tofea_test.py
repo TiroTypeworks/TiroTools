@@ -713,8 +713,8 @@ class ToFeaTest(unittest.TestCase):
         self.assertEqual(
             fea,
             "# Glyph classes\n"
-            "@DFLT_Num_numerators = [zero.numr one.numr two.numr];\n"
             "@DFLT_Num_standardFigures = [zero one two];\n"
+            "@DFLT_Num_numerators = [zero.numr one.numr two.numr];\n"
             "\n"
             "# Lookups\n"
             "lookup RevLookup {\n"
