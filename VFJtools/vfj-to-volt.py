@@ -167,16 +167,11 @@ def exportVoltAnchors(font):
             fp.write(str(doc))
 
 
-def _kern_coverage(names, classes=None):
+def _kern_coverage(names):
     ret = []
     for name in names:
         if name.startswith('@'):
-            name = name[1:]
-            if classes is not None:
-                glyphs = tuple(ast.GlyphName(g) for g in sorted(classes[name]))
-                ret.append([ast.Enum(glyphs)])
-            else:
-                ret.append([ast.GroupName(f'KERN{name}', None)])
+            ret.append([ast.GroupName(f'KERN{name[1:]}', None)])
         else:
             ret.append([ast.GlyphName(name)])
     return ret
@@ -209,69 +204,65 @@ def _warn_overlapping_classes(master, groups):
         )
 
 
+nullpos = ast.Pos(None, None, None, {}, {}, {})
+
+
+def _kern_pair(lookup, left, right, value):
+    if left not in lookup.pos.coverages_1:
+        lookup.pos.coverages_1.append(left)
+    id1 = lookup.pos.coverages_1.index(left) + 1
+
+    if right not in lookup.pos.coverages_2:
+        lookup.pos.coverages_2.append(right)
+    id2 = lookup.pos.coverages_2.index(right) + 1
+
+    pos = ast.Pos(value, None, None, {}, {}, {})
+    lookup.pos.adjust_pair[(id1, id2)] = (pos, nullpos)
+
+
 def exportVoltKerning(font):
     # Save groups and lookups files for each master.
     for master in font.masters:
         classes = {k.name: k.names for k in master.kerning.classes}
-        pairs = master.kerning.pairs.copy()
 
-        format1 = _pair_lookup(r'kern\1_PPF1')
-        format2 = _pair_lookup(r'kern\2_PPF2')
-        nullpos = ast.Pos(None, None, None, {}, {}, {})
+        # Get kerning pairs as a flat list.
+        pairs = []
+        for left in master.kerning.pairs:
+            for right, value in master.kerning.pairs[left].items():
+                pairs.append(((left, right), otRound(float(value))))
 
-        # Left exceptions
-        filtered = {}
-        for left in pairs:
-            if left.startswith('@'):
-                names = []
-                for name in classes[left[1:]]:
-                    if name in pairs:
-                        pairs[name] = {**pairs[left], **pairs[name]}
-                    else:
-                        names.append(name)
-                filtered[left[1:]] = names
-
-        # Right exceptions
-        rights = set()
-        for left in pairs:
-            rights.update(pairs[left])
-
-        for right in sorted(rights):
-            if right.startswith('@'):
-                names = []
-                for name in classes[right[1:]]:
-                    if name in rights:
-                        for left in pairs:
-                            if right in pairs[left]:
-                                pairs[left][name] = pairs[left][right]
-                    else:
-                        names.append(name)
-                filtered[right[1:]] = names
-
+        lookups = []
         groups = set()
-        values = {}
-        for left in pairs:
-            for right, value in pairs[left].items():
-                lookup = format1
-                if left.startswith('@') and right.startswith('@'):
-                    lookup = format2
-                    groups.update([left[1:], right[1:]])
-                else:
-                    if left.startswith('@') and not filtered[left[1:]]:
-                        continue
-                    if right.startswith('@') and not filtered[right[1:]]:
-                        continue
 
-                if left not in lookup.pos.coverages_1:
-                    lookup.pos.coverages_1.append(left)
-                id1 = lookup.pos.coverages_1.index(left) + 1
+        # Write format 1 lookup for individual glyph pairs first.
+        lookup = _pair_lookup(r'kern\1_PPF1')
+        lookups.append(lookup)
+        for (left, right), value in pairs:
+            if not left.startswith('@') and not right.startswith('@'):
+                _kern_pair(lookup, left, right, value)
 
-                if right not in lookup.pos.coverages_2:
-                    lookup.pos.coverages_2.append(right)
-                id2 = lookup.pos.coverages_2.index(right) + 1
+        # Then write format 1 lookup for pairs where right side is a class.
+        lookup = _pair_lookup(r'kern\2_PPF1')
+        lookups.append(lookup)
+        for (left, right), value in pairs:
+            if not left.startswith('@') and right.startswith('@'):
+                _kern_pair(lookup, left, right, value)
 
-                pos = ast.Pos(otRound(float(value)), None, None, {}, {}, {})
-                lookup.pos.adjust_pair[(id1, id2)] = (pos, nullpos)
+        # Then write format 1 lookup for pairs where left side is a class.
+        lookup = _pair_lookup(r'kern\3_PPF1')
+        lookups.append(lookup)
+        for (left, right), value in pairs:
+            if left.startswith('@') and not right.startswith('@'):
+                _kern_pair(lookup, left, right, value)
+
+        # Lastly write format 2 (class kerning). We also collect used groups to
+        # avoid writing groups not used in kerning.
+        lookup = _pair_lookup(r'kern\4_PPF2')
+        lookups.append(lookup)
+        for (left, right), value in pairs:
+            if left.startswith('@') and right.startswith('@'):
+                groups.update([left[1:], right[1:]])
+                _kern_pair(lookup, left, right, value)
 
         _warn_overlapping_classes(master, groups)
 
@@ -286,14 +277,12 @@ def exportVoltKerning(font):
 
         # Save lookups file.
         with open(master.psn + '-kerning.vtl', 'w') as fp:
-            format1.pos.coverages_1 = _kern_coverage(format1.pos.coverages_1, filtered)
-            format1.pos.coverages_2 = _kern_coverage(format1.pos.coverages_2, filtered)
-
-            format2.pos.coverages_1 = _kern_coverage(format2.pos.coverages_1)
-            format2.pos.coverages_2 = _kern_coverage(format2.pos.coverages_2)
+            for lookup in lookups:
+                lookup.pos.coverages_1 = _kern_coverage(lookup.pos.coverages_1)
+                lookup.pos.coverages_2 = _kern_coverage(lookup.pos.coverages_2)
 
             doc = ast.VoltFile()
-            doc.statements = [format1, format2]
+            doc.statements = lookups
             fp.write(str(doc))
 
 
