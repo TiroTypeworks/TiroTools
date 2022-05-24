@@ -10,21 +10,6 @@ from fontTools.misc.fixedTools import otRound
 from fontTools.voltLib import ast
 
 
-def _pair_lookup(name):
-    return ast.LookupDefinition(
-        name,
-        True,
-        False,
-        None,
-        'LTR',
-        False,
-        None,
-        None,
-        None,
-        ast.PositionAdjustPairDefinition([], [], {}),
-    )
-
-
 def _attachment_lookup(name):
     return ast.LookupDefinition(
         name,
@@ -167,11 +152,17 @@ def exportVoltAnchors(font):
             fp.write(str(doc))
 
 
+def _kern_group_name(name):
+    if not name.startswith("KERN"):
+        name = 'KERN' + name
+    return name
+
+
 def _kern_coverage(names):
     ret = []
     for name in names:
         if name.startswith('@'):
-            ret.append([ast.GroupName(f'KERN{name[1:]}', None)])
+            ret.append([ast.GroupName(_kern_group_name(name[1:]), None)])
         else:
             ret.append([ast.GlyphName(name)])
     return ret
@@ -204,10 +195,32 @@ def _warn_overlapping_classes(master, groups):
         )
 
 
+def _sart_pair_lookup(lookups, kind="PPF1"):
+    name = fr'kern\{len(lookups) + 1}_{kind}'
+    lookup = ast.LookupDefinition(
+        name,
+        True,
+        False,
+        None,
+        'LTR',
+        False,
+        None,
+        None,
+        None,
+        ast.PositionAdjustPairDefinition([], [], {}),
+    )
+    lookups.append(lookup)
+
+
 nullpos = ast.Pos(None, None, None, {}, {}, {})
 
 
-def _kern_pair(lookup, left, right, value):
+def _kern_pair(lookups, left, right, value, max_pairs=None):
+    if max_pairs and len(lookups[-1].pos.adjust_pair) == max_pairs:
+        # If the number of pairs exceeds the max, start a new lookup subtable.
+        kind = lookups[-1].name.rsplit("_", 1)[1]
+        _sart_pair_lookup(lookups, kind)
+    lookup = lookups[-1]
     if left not in lookup.pos.coverages_1:
         lookup.pos.coverages_1.append(left)
     id1 = lookup.pos.coverages_1.index(left) + 1
@@ -220,7 +233,7 @@ def _kern_pair(lookup, left, right, value):
     lookup.pos.adjust_pair[(id1, id2)] = (pos, nullpos)
 
 
-def exportVoltKerning(font):
+def exportVoltKerning(font, max_pairs):
     # Save groups and lookups files for each master.
     for master in font.masters:
         classes = {k.name: k.names for k in master.kerning.classes}
@@ -235,34 +248,30 @@ def exportVoltKerning(font):
         groups = set()
 
         # Write format 1 lookup for individual glyph pairs first.
-        lookup = _pair_lookup(r'kern\1_PPF1')
-        lookups.append(lookup)
+        _sart_pair_lookup(lookups)
         for (left, right), value in pairs:
             if not left.startswith('@') and not right.startswith('@'):
-                _kern_pair(lookup, left, right, value)
+                _kern_pair(lookups, left, right, value, max_pairs)
 
         # Then write format 1 lookup for pairs where right side is a class.
-        lookup = _pair_lookup(r'kern\2_PPF1')
-        lookups.append(lookup)
+        _sart_pair_lookup(lookups)
         for (left, right), value in pairs:
             if not left.startswith('@') and right.startswith('@'):
-                _kern_pair(lookup, left, right, value)
+                _kern_pair(lookups, left, right, value, max_pairs)
 
         # Then write format 1 lookup for pairs where left side is a class.
-        lookup = _pair_lookup(r'kern\3_PPF1')
-        lookups.append(lookup)
+        _sart_pair_lookup(lookups)
         for (left, right), value in pairs:
             if left.startswith('@') and not right.startswith('@'):
-                _kern_pair(lookup, left, right, value)
+                _kern_pair(lookups, left, right, value, max_pairs)
 
         # Lastly write format 2 (class kerning). We also collect used groups to
         # avoid writing groups not used in kerning.
-        lookup = _pair_lookup(r'kern\4_PPF2')
-        lookups.append(lookup)
+        _sart_pair_lookup(lookups, "PPF2")
         for (left, right), value in pairs:
             if left.startswith('@') and right.startswith('@'):
                 groups.update([left[1:], right[1:]])
-                _kern_pair(lookup, left, right, value)
+                _kern_pair(lookups, left, right, value)
 
         _warn_overlapping_classes(master, groups)
 
@@ -272,7 +281,7 @@ def exportVoltKerning(font):
             for name in sorted(groups):
                 glyphs = tuple(ast.GlyphName(g) for g in sorted(classes[name]))
                 enum = ast.Enum(glyphs)
-                doc.statements.append(ast.GroupDefinition(f'KERN{name}', enum))
+                doc.statements.append(ast.GroupDefinition(_kern_group_name(name), enum))
             fp.write(str(doc))
 
         # Save lookups file.
@@ -303,13 +312,21 @@ def main(args=None):
         action='store_true',
         help="write VOLT kerning and glyph groups",
     )
+    parser.add_argument(
+        "-s",
+        "--split-kern",
+        type=int,
+        metavar="N",
+        help="split kern subtables after N number of pairs",
+    )
 
     options = parser.parse_args(args)
+
     font = Font(options.input)
     if options.anchors:
         exportVoltAnchors(font)
     if options.kerning:
-        exportVoltKerning(font)
+        exportVoltKerning(font, options.split_kern)
 
 
 if __name__ == "__main__":
