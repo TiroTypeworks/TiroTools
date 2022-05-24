@@ -167,11 +167,17 @@ def exportVoltAnchors(font):
             fp.write(str(doc))
 
 
+def _kern_group_name(name):
+    if not name.startswith("KERN"):
+        name = 'KERN' + name
+    return name
+
+
 def _kern_coverage(names):
     ret = []
     for name in names:
         if name.startswith('@'):
-            ret.append([ast.GroupName(f'KERN{name[1:]}', None)])
+            ret.append([ast.GroupName(_kern_group_name(name[1:]), None)])
         else:
             ret.append([ast.GlyphName(name)])
     return ret
@@ -272,7 +278,7 @@ def exportVoltKerning(font):
             for name in sorted(groups):
                 glyphs = tuple(ast.GlyphName(g) for g in sorted(classes[name]))
                 enum = ast.Enum(glyphs)
-                doc.statements.append(ast.GroupDefinition(f'KERN{name}', enum))
+                doc.statements.append(ast.GroupDefinition(_kern_group_name(name), enum))
             fp.write(str(doc))
 
         # Save lookups file.
