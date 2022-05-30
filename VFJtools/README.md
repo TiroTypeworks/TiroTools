@@ -73,4 +73,11 @@ To do both at the same time:
 
 ```
 python3 vfj-to-volt.py input.vfj --anchors --kerning
+```	
+Optionally, you can run the kerning conversion in a way that limits individual format 1 subtable lookups to a fixed number of pairs, e.g.:
+
 ```
+python3 vfj-to-volt.py input.vfj --kerning -s=15000
+```
+
+This option is useful to avoid subtable size limit overruns.
