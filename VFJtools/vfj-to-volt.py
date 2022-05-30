@@ -209,17 +209,30 @@ def _sart_pair_lookup(lookups, kind="PPF1"):
         None,
         ast.PositionAdjustPairDefinition([], [], {}),
     )
+    lookup.vfj_len = 0
     lookups.append(lookup)
 
 
 nullpos = ast.Pos(None, None, None, {}, {}, {})
 
 
-def _kern_pair(lookups, left, right, value, max_pairs=None):
-    if max_pairs and len(lookups[-1].pos.adjust_pair) == max_pairs:
-        # If the number of pairs exceeds the max, start a new lookup subtable.
-        kind = lookups[-1].name.rsplit("_", 1)[1]
-        _sart_pair_lookup(lookups, kind)
+def _pair_len(left, right, classes):
+    if left.startswith("@"):
+        return len(classes[left[1:]])
+    elif right.startswith("@"):
+        return len(classes[right[1:]])
+    return 1
+
+
+def _kern_pair(lookups, left, right, value, max_pairs=None, classes=[]):
+    if max_pairs:
+        pair_len = _pair_len(left, right, classes)
+        if lookups[-1].vfj_len + pair_len > max_pairs:
+            # If the number of pairs exceeds the max, start a new lookup
+            # subtable.
+            kind = lookups[-1].name.rsplit("_", 1)[1]
+            _sart_pair_lookup(lookups, kind)
+
     lookup = lookups[-1]
     if left not in lookup.pos.coverages_1:
         lookup.pos.coverages_1.append(left)
@@ -231,6 +244,9 @@ def _kern_pair(lookups, left, right, value, max_pairs=None):
 
     pos = ast.Pos(value, None, None, {}, {}, {})
     lookup.pos.adjust_pair[(id1, id2)] = (pos, nullpos)
+
+    if max_pairs:
+        lookup.vfj_len += pair_len
 
 
 def exportVoltKerning(font, max_pairs):
@@ -251,19 +267,19 @@ def exportVoltKerning(font, max_pairs):
         _sart_pair_lookup(lookups)
         for (left, right), value in pairs:
             if not left.startswith('@') and not right.startswith('@'):
-                _kern_pair(lookups, left, right, value, max_pairs)
+                _kern_pair(lookups, left, right, value, max_pairs, classes)
 
         # Then write format 1 lookup for pairs where right side is a class.
         _sart_pair_lookup(lookups)
         for (left, right), value in pairs:
             if not left.startswith('@') and right.startswith('@'):
-                _kern_pair(lookups, left, right, value, max_pairs)
+                _kern_pair(lookups, left, right, value, max_pairs, classes)
 
         # Then write format 1 lookup for pairs where left side is a class.
         _sart_pair_lookup(lookups)
         for (left, right), value in pairs:
             if left.startswith('@') and not right.startswith('@'):
-                _kern_pair(lookups, left, right, value, max_pairs)
+                _kern_pair(lookups, left, right, value, max_pairs, classes)
 
         # Lastly write format 2 (class kerning). We also collect used groups to
         # avoid writing groups not used in kerning.
