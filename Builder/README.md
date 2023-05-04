@@ -6,7 +6,9 @@ The build script outputs both static and variable TTF and CFF OpenType fonts, an
 
 * [set final glyph names from .ren mapping]
 * build TTF/OTF
-* remove overlaps
+* – build variable font
+* [– instantiate instances]
+* [remove overlaps]
 * [copy OTL tables from input.ttf sources]
 * autohint (ttfautohint and AFDKO)
 * [subset
@@ -22,8 +24,10 @@ From the top level folder:
 ```
 # Create a new virtualenv
 python3 -m venv venv
+
 # Activate env
 source venv/bin/activate
+
 # Install dependencies
 pip3 install -r requirements.txt
 ```
@@ -254,7 +258,7 @@ instances: all
 ```
 
 
-To generate specific names instances:
+To generate specific named instances:
 
 ```yaml
 instances:
