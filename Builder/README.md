@@ -54,7 +54,7 @@ fonts:
 
   Foo-Bold:
     source: source/Foo-Bold.ufo
-	...
+    ...
 ```
 
 The only required top level key is `fonts` which is a list of static or variable fonts to build. Other top level keys are optional and when present will apply to all fonts unless overridden by per-font keys.
@@ -88,7 +88,7 @@ fonts:
           4: Foo Adlam
           6: FooAdlam-Regular
     glyphnames: source/Foo.ren
-	...
+    ...
 ```
 
 ## All supported keys follow:
