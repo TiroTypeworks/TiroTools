@@ -28,9 +28,6 @@ Please see individual folder readme files for installation, usage, or dependency
 Current tool list
 ------------
 
-### Volto
-Converts MS Visual OpenType Layout Tool (VOLT) projects to AFDKO feature file syntax.
-
 ### VTPtools : vtp-scale
 Scales all GPOS data in a VOLT project file.
 
