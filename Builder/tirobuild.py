@@ -89,7 +89,20 @@ class Font:
     def __init__(self, name, conf, project):
         self.name = name
 
-        conf = {**project, **conf}
+        # Merge keys from the top level (project) configuration into the
+        # current font’s conf.
+        conf = {**conf}
+        for key in project:
+            if key == "fonts":
+                continue
+            if key not in conf:
+                conf[key] = project[key]
+            elif isinstance(project[key], dict):
+                # We want to merge dictionaries from the two configurations, so
+                # that, say, names can be set in the project and over-ridden by
+                # the font’s conf.
+                conf[key] = {**project[key], **conf[key]}
+
         self.source = conf.get("source")
         self.ren = conf.get("glyphnames")
         self.ttf = conf.get("ttf", {})
