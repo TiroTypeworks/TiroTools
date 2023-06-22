@@ -180,6 +180,10 @@ will update corresponding head table version and unique ID strings. It is recomm
 
 ---
 
+`vf-suffix:` Suffix to add to variable font family name. Updates also all related name table entries. Ignored for static fonts.
+
+---
+
 `set:` can be used to provide a bit value for the OS/2 table fstype field:
 
 ```yaml

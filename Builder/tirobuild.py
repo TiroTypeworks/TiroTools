@@ -104,6 +104,7 @@ class Font:
         self.ren = path.parent / self.ren if self.ren else None
 
         self.variable = self.source.suffix == ".designspace"
+        self.suffix = conf.get("vf-suffix")
 
         if "source" in self.ttf:
             if self.variable:
@@ -514,6 +515,38 @@ class Font:
             cffsubr.subroutinize(otf, keep_glyph_names=False)
         return otf
 
+    def _addvfsuffix(self, otf):
+        if not self.variable or not self.suffix:
+            return
+
+        with SaveState(self):
+            names = {}
+            family = None
+
+            # Find the family name, we need it to know where to insert the
+            # suffix in full names
+            for record in otf["name"].names:
+                if record.nameID == 16:
+                    family = str(record)
+                elif record.nameID == 1 and family is None:
+                    family = str(record)
+
+            for record in otf["name"].names:
+                if record.nameID in [1, 16, 21]:
+                    # Family names, append space then the suffix
+                    names[record.nameID] = f"{str(record)} {self.suffix}"
+                if record.nameID == 6:
+                    # PostScript name, append suffix to family name
+                    psfamily = family.replace(" ", "")
+                    vfpsfamily = f"{psfamily}{self.suffix}"
+                    names[record.nameID] = str(record).replace(psfamily, vfpsfamily)
+                if record.nameID in [4, 18]:
+                    # Full names, append space then the suffix to family name
+                    vffamily = f"{family} {self.suffix}"
+                    names[record.nameID] = str(record).replace(family, vffamily)
+            self.names = names
+            self._setnames(otf)
+
     def _buildwoff(self, otf):
         for fmt in self.formats:
             if fmt not in (Format.WOFF, Format.WOFF2):
@@ -585,6 +618,7 @@ class Font:
             vf = self._autohint(vf)
             self._subset(vf)
             self._instanciate(vf)
+            self._addvfsuffix(vf)
             vf = self._optimize(vf)
             self._buildwoff(vf)
             self._save(vf)
