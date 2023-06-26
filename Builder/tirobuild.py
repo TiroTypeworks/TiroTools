@@ -530,11 +530,9 @@ class Font:
         return otf
 
     def _addvfsuffix(self, otf):
-        if not self.variable or not self.suffix:
-            return
+        names = {}
 
-        with SaveState(self):
-            names = {}
+        if self.variable and self.suffix:
             family = None
 
             # Find the family name, we need it to know where to insert the
@@ -558,6 +556,8 @@ class Font:
                     # Full names, append space then the suffix to family name
                     vffamily = f"{family} {self.suffix}"
                     names[record.nameID] = str(record).replace(family, vffamily)
+
+        with SaveState(self):
             self.names = names
             self._setnames(otf)
 
