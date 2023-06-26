@@ -466,6 +466,7 @@ class Font:
                 self.STAT = None
                 with pruningUnusedNames(otf):
                     otf = instantiateVariableFont(otf, coordinates, inplace=True)
+                otf["name"].removeNames(25)
                 setRibbiBits(otf)
                 self.names = conf.get("names")
                 self._postprocess(otf)
