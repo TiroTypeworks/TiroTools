@@ -3,8 +3,9 @@ TiroTools
 
 Assorted font production scripts, mostly involving either conversion of data between font development source formats, or manipulation of source formats.
 
-
 All scripts in this repo are licensed under the MIT open source license.
+
+*If you are looking for the* ***Volto*** *tool to convert Microsoft VOLT .vtp to Adobe .fea syntax, this tool has now been integrated into the [FontTools](https://github.com/fonttools/fonttools) project as the* `voltLib.voltToFea` *module.*
 
 Setup
 ------------
@@ -45,3 +46,5 @@ Exports VOLT .vtl lookups and .vtg group sources from FontLab 7 .vfj sources.
 
 ### Builder : tirobuild
 See [Builder/README.md](Builder/README.md)
+
+
