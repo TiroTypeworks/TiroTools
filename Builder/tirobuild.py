@@ -33,6 +33,7 @@ class SaveState:
         self.variable = self.font.variable
         self.names = self.font.names
         self.STAT = self.font.STAT
+        self.meta = self.font.meta
 
     def __exit__(self, kind, value, tb):
         self.font.name = self.name
@@ -40,6 +41,7 @@ class SaveState:
         self.font.variable = self.variable
         self.font.names = self.names
         self.font.STAT = self.STAT
+        self.font.meta = self.meta
 
 
 class Format(Enum):
@@ -322,6 +324,14 @@ class Font:
 
         return otf
 
+    def _setmeta(self, otf):
+        if self.meta:
+            from fontTools.ttLib import newTable
+
+            logger.info(f"Adding “meta” table to {self.filename}")
+            otf["meta"] = meta = newTable("meta")
+            meta.data = {t: ",".join(v) for t, v in self.meta.items()}
+
     def _postprocess(self, otf):
         self._setnames(otf)
 
@@ -335,13 +345,7 @@ class Font:
             DSIG.usNumSigs = 0
             DSIG.signatureRecords = []
 
-        if self.meta:
-            from fontTools.ttLib import newTable
-
-            logger.info(f"Adding “meta” table to {self.filename}")
-            otf["meta"] = meta = newTable("meta")
-            meta.data = {t: ",".join(v) for t, v in self.meta.items()}
-
+        self._setmeta(otf)
         self._setstat(otf)
         self._setfeatureparams(otf)
 
@@ -417,8 +421,10 @@ class Font:
                     subsetter.subset(new)
 
                 self.names = subset.get("names")
+                self.meta = subset.get("meta")
                 new = self._optimize(new)
                 self._setnames(new)
+                self._setmeta(new)
                 self._instanciate(new)
                 self._addvfsuffix(new)
                 self._buildwoff(new)
