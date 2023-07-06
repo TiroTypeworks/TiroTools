@@ -85,23 +85,28 @@ def instanceName(name, instance, font):
     return name.split("-")[0] + "-" + subfamily
 
 
+def mergeConfigs(first, second):
+    conf = {**first}
+    for key in second:
+        if key == "fonts":
+            continue
+        if key not in conf:
+            conf[key] = second[key]
+        elif isinstance(second[key], dict):
+            # We want to merge dictionaries from the two configurations, so
+            # that, say, names can be set in the second and over-ridden by
+            # the font’s conf.
+            conf[key] = {**second[key], **conf[key]}
+    return conf
+
+
 class Font:
     def __init__(self, name, conf, project):
         self.name = name
 
         # Merge keys from the top level (project) configuration into the
         # current font’s conf.
-        conf = {**conf}
-        for key in project:
-            if key == "fonts":
-                continue
-            if key not in conf:
-                conf[key] = project[key]
-            elif isinstance(project[key], dict):
-                # We want to merge dictionaries from the two configurations, so
-                # that, say, names can be set in the project and over-ridden by
-                # the font’s conf.
-                conf[key] = {**project[key], **conf[key]}
+        conf = mergeConfigs(conf, project)
 
         self.source = conf.get("source")
         self.ren = conf.get("glyphnames")
@@ -134,7 +139,7 @@ class Font:
             glyphlist, tags = self._parsesubset(path.parent / subset["glyphlist"])
             subset["glyphlist"] = glyphlist
             subset["langsys"] = tags
-            self.subsets[name] = subset
+            self.subsets[name] = mergeConfigs(subset, conf)
 
         self.names = conf.get("names", {})
         self.set = conf.get("set", {})
@@ -415,6 +420,7 @@ class Font:
                 new = self._optimize(new)
                 self._setnames(new)
                 self._instanciate(new)
+                self._addvfsuffix(new)
                 self._buildwoff(new)
                 self._save(new)
 
