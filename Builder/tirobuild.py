@@ -33,6 +33,7 @@ class SaveState:
         self.variable = self.font.variable
         self.names = self.font.names
         self.STAT = self.font.STAT
+        self.meta = self.font.meta
 
     def __exit__(self, kind, value, tb):
         self.font.name = self.name
@@ -40,6 +41,7 @@ class SaveState:
         self.font.variable = self.variable
         self.font.names = self.names
         self.font.STAT = self.STAT
+        self.font.meta = self.meta
 
 
 class Format(Enum):
@@ -85,23 +87,28 @@ def instanceName(name, instance, font):
     return name.split("-")[0] + "-" + subfamily
 
 
+def mergeConfigs(first, second):
+    conf = {**first}
+    for key in second:
+        if key == "fonts":
+            continue
+        if key not in conf:
+            conf[key] = second[key]
+        elif isinstance(second[key], dict):
+            # We want to merge dictionaries from the two configurations, so
+            # that, say, names can be set in the second and over-ridden by
+            # the font’s conf.
+            conf[key] = {**second[key], **conf[key]}
+    return conf
+
+
 class Font:
     def __init__(self, name, conf, project):
         self.name = name
 
         # Merge keys from the top level (project) configuration into the
         # current font’s conf.
-        conf = {**conf}
-        for key in project:
-            if key == "fonts":
-                continue
-            if key not in conf:
-                conf[key] = project[key]
-            elif isinstance(project[key], dict):
-                # We want to merge dictionaries from the two configurations, so
-                # that, say, names can be set in the project and over-ridden by
-                # the font’s conf.
-                conf[key] = {**project[key], **conf[key]}
+        conf = mergeConfigs(conf, project)
 
         self.source = conf.get("source")
         self.ren = conf.get("glyphnames")
@@ -134,7 +141,7 @@ class Font:
             glyphlist, tags = self._parsesubset(path.parent / subset["glyphlist"])
             subset["glyphlist"] = glyphlist
             subset["langsys"] = tags
-            self.subsets[name] = subset
+            self.subsets[name] = mergeConfigs(subset, conf)
 
         self.names = conf.get("names", {})
         self.set = conf.get("set", {})
@@ -317,6 +324,14 @@ class Font:
 
         return otf
 
+    def _setmeta(self, otf):
+        if self.meta:
+            from fontTools.ttLib import newTable
+
+            logger.info(f"Adding “meta” table to {self.filename}")
+            otf["meta"] = meta = newTable("meta")
+            meta.data = {t: ",".join(v) for t, v in self.meta.items()}
+
     def _postprocess(self, otf):
         self._setnames(otf)
 
@@ -330,13 +345,7 @@ class Font:
             DSIG.usNumSigs = 0
             DSIG.signatureRecords = []
 
-        if self.meta:
-            from fontTools.ttLib import newTable
-
-            logger.info(f"Adding “meta” table to {self.filename}")
-            otf["meta"] = meta = newTable("meta")
-            meta.data = {t: ",".join(v) for t, v in self.meta.items()}
-
+        self._setmeta(otf)
         self._setstat(otf)
         self._setfeatureparams(otf)
 
@@ -412,9 +421,12 @@ class Font:
                     subsetter.subset(new)
 
                 self.names = subset.get("names")
+                self.meta = subset.get("meta")
                 new = self._optimize(new)
                 self._setnames(new)
+                self._setmeta(new)
                 self._instanciate(new)
+                self._addvfsuffix(new)
                 self._buildwoff(new)
                 self._save(new)
 
