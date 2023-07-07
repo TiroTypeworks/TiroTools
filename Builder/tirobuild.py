@@ -466,6 +466,10 @@ class Font:
             stream.seek(0)
             otf = TTFont(stream)
 
+            # Remove Variations PS Name Prefix, and do so before updating the
+            # name table so it does not leak into the instance PS name.
+            otf["name"].removeNames(25)
+
             try:
                 updateNameTable(otf, coordinates)
             except ValueError:
@@ -478,7 +482,6 @@ class Font:
                 self.STAT = None
                 with pruningUnusedNames(otf):
                     otf = instantiateVariableFont(otf, coordinates, inplace=True)
-                otf["name"].removeNames(25)
                 setRibbiBits(otf)
                 self.names = conf.get("names")
                 self._postprocess(otf)
