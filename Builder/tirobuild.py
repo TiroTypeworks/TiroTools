@@ -422,7 +422,7 @@ class Font:
 
                 self.names = subset.get("names")
                 self.meta = subset.get("meta")
-                new = self._optimize(new)
+                self._optimize(new)
                 self._setnames(new)
                 self._setmeta(new)
                 self._instanciate(new)
@@ -485,6 +485,7 @@ class Font:
                 setRibbiBits(otf)
                 self.names = conf.get("names")
                 self._postprocess(otf)
+                self._optimize(otf)
                 self._save(otf)
                 self._buildwoff(otf)
 
@@ -529,20 +530,28 @@ class Font:
                 topDict.version = f"{font['head'].fontRevision}"
 
     def _optimize(self, otf):
+        if self.variable:
+            return
+
         if "CFF " in otf:
-            import cffsubr
-            from fontTools.cffLib.specializer import specializeProgram
+            tag = "CFF "
+        elif "CFF2" in otf:
+            tag = "CFF2"
+        else:
+            return
 
-            logger.info(f"Optimizing {self.filename}")
-            topDict = otf["CFF "].cff.topDictIndex[0]
-            charStrings = topDict.CharStrings
-            for charString in charStrings.values():
-                charString.decompile()
-                charString.program = specializeProgram(charString.program)
+        import cffsubr
+        from fontTools.cffLib.specializer import specializeProgram
 
-            logger.info(f"Subroutinizing {self.filename}")
-            cffsubr.subroutinize(otf, keep_glyph_names=False)
-        return otf
+        logger.info(f"Optimizing {self.filename}")
+        topDict = otf[tag].cff.topDictIndex[0]
+        charStrings = topDict.CharStrings
+        for charString in charStrings.values():
+            charString.decompile()
+            charString.program = specializeProgram(charString.program)
+
+        logger.info(f"Subroutinizing {self.filename}")
+        cffsubr.subroutinize(otf, keep_glyph_names=False, cff_version=1)
 
     def _addvfsuffix(self, otf):
         names = {}
@@ -648,7 +657,7 @@ class Font:
             self._subset(vf)
             self._instanciate(vf)
             self._addvfsuffix(vf)
-            vf = self._optimize(vf)
+            self._optimize(vf)
             self._buildwoff(vf)
             self._save(vf)
 
@@ -710,7 +719,7 @@ class Font:
             otf = self._postprocess(otf)
             otf = self._autohint(otf)
             self._subset(otf)
-            otf = self._optimize(otf)
+            self._optimize(otf)
             self._buildwoff(otf)
             self._save(otf)
 
