@@ -141,6 +141,10 @@ class Font:
             glyphlist, tags = self._parsesubset(path.parent / subset["glyphlist"])
             subset["glyphlist"] = glyphlist
             subset["langsys"] = tags
+            if "cmapoverride" in subset:
+                subset["cmapoverride"] = self._parsecmapoverride(
+                    path.parent / subset["cmapoverride"]
+                )
             self.subsets[name] = mergeConfigs(subset, conf)
 
         self.names = conf.get("names", {})
@@ -204,8 +208,8 @@ class Font:
     def filename(self):
         return self.name + "." + self.ext
 
-    def _parsesubset(self, subset):
-        with open(subset) as f:
+    def _parsesubset(self, path):
+        with open(path) as f:
             lines = f.read().split("\n")
 
         glyphlist = set()
@@ -220,6 +224,22 @@ class Font:
                 glyphlist.add(line)
 
         return (glyphlist, tags if tags else ["*"])
+
+    def _parsecmapoverride(self, path):
+        with open(path) as f:
+            lines = f.read().split("\n")
+
+        override = {}
+        for line in lines:
+            line = line.strip()
+            if line and not line.startswith("#"):
+                code, glyphname = line.split()
+                code = int(code, 16)
+                if code in override:
+                    raise ValueError(f"Duplicate mapping for “{code:04X}” in: {path}")
+                override[code] = glyphname
+
+        return override
 
     def _openufo(self, path, dspath=None):
         from ufoLib2 import Font as UFOFont
@@ -422,6 +442,7 @@ class Font:
 
                 self.names = subset.get("names")
                 self.meta = subset.get("meta")
+                self._overridecmap(new, subset.get("cmapoverride"))
                 self._optimize(new)
                 self._setnames(new)
                 self._setmeta(new)
@@ -584,6 +605,22 @@ class Font:
         with SaveState(self):
             self.names = names
             self._setnames(otf)
+
+    def _overridecmap(self, otf, cmapoverride):
+        if cmapoverride is None:
+            return
+
+        logger.info(f"Overriding “cmap” in {self.filename}")
+        ga = otf.getGlyphOrder()
+        cmap = otf["cmap"]
+        for subtable in cmap.tables:
+            if subtable.isUnicode():
+                for code, glyphname in cmapoverride.items():
+                    if glyphname not in ga:
+                        raise ValueError(
+                            f"Glyph “{glyphname}” used in “camp” override not in font"
+                        )
+                    subtable.cmap[code] = glyphname
 
     def _buildwoff(self, otf):
         for fmt in self.formats:

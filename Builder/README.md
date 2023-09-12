@@ -149,13 +149,20 @@ glyphnames: source/BrillDev2Post.ren
 
 ---
 
-`subsets`: a dictionary of font subset to create, etch entry is key is the stem of the subset and the value is the path of the file containing the subset glyph names:
+`subsets`: a dictionary of font subset to create, the key is the stem of the subset file name, and the value is a dictionary of options similar to font options with two additional keys:
+
+* `glyphlist`: the path of the file containing the subset glyph names, this is required
+* `cmapoverride`: the path of a file comtaning overrides to the `cmap` table, in the form of space-sperated hex code point and glyphname pairs, e.g.: `1D00 a.smcp`
 
 ```yaml
 subsets:
-  BrillLatin-Regular: source/LatinSubset.txt
-  BrillGreek-Regular: source/GreekSubset.txt
-  BrillCyrillic-Regular: source/CyrillicSubset.txt
+  BrillLatin-Regular:
+    glyphlist: source/LatinSubset.txt
+    cmapoverride: source/LatinSubsetCmap.txt
+  BrillGreek-Regular:
+    glyphlist: source/GreekSubset.txt
+  BrillCyrillic-Regular:
+    glyphlist: source/CyrillicSubset.txt
 ```
 
 ---
