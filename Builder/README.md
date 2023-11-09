@@ -308,7 +308,7 @@ instances:
 
 ---
 
-`featureparams:` generates feature params or stylistic sets and character variants features. Feature params can be set whether the layout tables came from binary input fonts or from feature files:
+`featureparams:` generates feature params or stylistic sets and character variants features. Feature params can be set whether the layout tables came from binary input fonts or from feature files. Optionally, the feature tag can include script and language, e.g. `ss01.latn` and `ss02.latn.ENG`:
 
 ```yaml
     featureparams:
