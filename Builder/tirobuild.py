@@ -102,6 +102,61 @@ def mergeConfigs(first, second):
     return conf
 
 
+def splitfearureparamtag(tag):
+    script = None
+    langsys = None
+    if "." in tag:
+        tag, script = tag.split(".", 1)
+        if "." in script:
+            script, langsys = script.split(".", 1)
+            langsys = langsys.ljust(4, " ")
+        script = script.ljust(4, " ")
+    return tag, script, langsys
+
+
+def validatefeatureparamtag(tag):
+    if tag.count(".") > 2:
+        return False
+
+    tag, _, _ = splitfearureparamtag(tag)
+    if not tag[2:].isnumeric():
+        return False
+
+    num = int(tag[2:])
+    if tag.startswith("ss") and num in range(1, 21):
+        return True
+    elif tag.startswith("cv") and num in range(1, 100):
+        return True
+    return False
+
+
+def collectfeatures(table, tag):
+    tag, script, langsys = splitfearureparamtag(tag)
+    features = []
+    if script:
+        for srec in table.ScriptList.ScriptRecord:
+            indices = []
+            if srec.ScriptTag == script:
+                if langsys == "dflt":
+                    indices += srec.Script.DefaultLangSys.FeatureIndex
+                    indices.append(srec.Script.DefaultLangSys.ReqFeatureIndex)
+                elif langsys:
+                    for lrec in srec.Script.LangSysRecord:
+                        if lrec.LangSysTag == langsys:
+                            indices += lrec.LangSys.FeatureIndex
+                            indices.append(lrec.LangSys.ReqFeatureIndex)
+                else:
+                    indices += srec.Script.DefaultLangSys.FeatureIndex
+            for i in indices:
+                if i == 0xFFFF:
+                    continue
+                features.append(table.FeatureList.FeatureRecord[i])
+    else:
+        features = table.FeatureList.FeatureRecord
+
+    return [f.Feature for f in features if f.FeatureTag == tag]
+
+
 class Font:
     def __init__(self, name, conf, project):
         self.name = name
@@ -177,28 +232,21 @@ class Font:
         if not isinstance(self.featureparams, dict):
             raise RuntimeError("“featureparams” must be a dictionary")
         for tag, params in self.featureparams.items():
-            if (
-                tag.startswith("ss")
-                and tag[2:].isnumeric()
-                and int(tag[2:]) in range(1, 21)
-            ):
+            if not validatefeatureparamtag(tag):
+                raise RuntimeError(
+                    f"Invalid or unsupported feature tag for “featureparams”: {tag}"
+                )
+
+            if tag.startswith("ss"):
                 if not isinstance(params, str):
                     raise RuntimeError(
                         "“featureparams” of stylistic set must be a string"
                     )
-            elif (
-                tag.startswith("cv")
-                and tag[2:].isnumeric()
-                and int(tag[2:]) in range(1, 100)
-            ):
+            elif tag.startswith("cv"):
                 if not isinstance(params, dict):
                     raise RuntimeError(
                         "“featureparams” of character variant must be a dictionary"
                     )
-            else:
-                raise RuntimeError(
-                    f"“featureparams” are unsupported for feature: {tag}"
-                )
 
     @property
     def ext(self):
@@ -285,14 +333,20 @@ class Font:
             if tag not in otf:
                 continue
             table = otf[tag].table
-            for feature in table.FeatureList.FeatureRecord:
-                if feature.FeatureTag in self.featureparams:
-                    conf = self.featureparams[feature.FeatureTag]
-                    if feature.FeatureTag.startswith("ss"):
+
+            for tag, conf in self.featureparams.items():
+                features = collectfeatures(table, tag)
+                print(features)
+                for feature in features:
+                    if feature.FeatureParams:
+                        raise RuntimeError(
+                            f"Feature “{tag}” already has “featureparams”"
+                        )
+                    if tag.startswith("ss"):
                         params = otTables.FeatureParamsStylisticSet()
                         params.Version = 0
                         params.UINameID = addName(conf)
-                    elif feature.FeatureTag.startswith("cv"):
+                    elif tag.startswith("cv"):
                         label = conf.get("label")
                         tooltip = conf.get("tooltip")
                         sampletext = conf.get("sampletext")
@@ -314,7 +368,7 @@ class Font:
                         params.FirstParamUILabelNameID = addName(paramlabels)
                         params.Character = characters
                         params.CharCount = len(characters)
-                    feature.Feature.FeatureParams = params
+                    feature.FeatureParams = params
 
     def _setstat(self, font):
         if self.STAT:
