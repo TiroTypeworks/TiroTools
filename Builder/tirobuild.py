@@ -425,7 +425,7 @@ class Font:
                 options.legacy_kern = True
                 options.symbol_cmap = True
                 options.layout_closure = False
-                options.prune_unicode_ranges = False
+                options.prune_unicode_ranges = True
                 options.passthrough_tables = False
                 options.recalc_average_width = True
                 options.ignore_missing_glyphs = True
