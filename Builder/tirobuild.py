@@ -459,6 +459,7 @@ class Font:
 
     def _subset(self, otf):
         from fontTools.subset import Options, Subsetter
+        from ufo2ft.util import calcCodePageRanges
 
         for name, subset in self.subsets.items():
             with SaveState(self):
@@ -479,6 +480,8 @@ class Font:
                 options.symbol_cmap = True
                 options.layout_closure = False
                 options.prune_unicode_ranges = True
+                if hasattr(options, "prune_codepage_ranges"):
+                    options.prune_codepage_ranges = True
                 options.passthrough_tables = False
                 options.recalc_average_width = True
                 options.ignore_missing_glyphs = True
@@ -492,6 +495,22 @@ class Font:
 
                 with TemporaryLogLevel(logging.WARNING):
                     subsetter.subset(new)
+
+                if not hasattr(options, "prune_codepage_ranges"):
+                    from ufo2ft.util import calcCodePageRanges
+
+                    unicodes = set()
+                    for table in new["cmap"].tables:
+                        if table.isUnicode():
+                            unicodes.update(table.cmap.keys())
+                    bits = set(range(64)) - calcCodePageRanges(unicodes)
+                    if len(bits) == 64:
+                        bits -= {0}
+                    for bit in bits:
+                        if 0 <= bit < 32:
+                            new["OS/2"].ulCodePageRange1 &= ~(1 << bit)
+                        else:
+                            new["OS/2"].ulCodePageRange2 &= ~(1 << (bit - 32))
 
                 self.names = subset.get("names")
                 self.meta = subset.get("meta")
