@@ -336,7 +336,6 @@ class Font:
 
             for tag, conf in self.featureparams.items():
                 features = collectfeatures(table, tag)
-                print(features)
                 for feature in features:
                     if feature.FeatureParams:
                         raise RuntimeError(
