@@ -42,3 +42,35 @@ The tool can also be used on a font files containing a TSIV source table:
 ```
 python3 vtp-skew.py input.ttf output.ttf -a 12
 ```
+
+vtp-gdef.py
+----
+
+The vtp-gdef.py tool is used to set GDEF glyph classes in a .vtp file from an input text file. The text file has the follwing format:
+
+```
+# class1
+glyphname1
+glyphname2
+# class2
+glyphname3
+```
+
+Where glyph class is one of “base”, “mark”, “ligature”, and “component”.
+
+Usage example:
+
+```
+python3 vtp-gdef.py input.vtp gdef.txt output.vtp
+```
+
+Any mssing glyphs from the GDEF text file will be given “base” glyph class, and this can be overriden using `--missing` option. To set missing glyphs to mark:
+
+```
+python3 vtp-gdef.py input.vtp gdef.txt output.vtp --missing=mark
+```
+
+To keep missing glyphs unchaged:
+```
+python3 vtp-gdef.py input.vtp gdef.txt output.vtp --missing=keep
+```
