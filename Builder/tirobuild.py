@@ -147,6 +147,10 @@ def collectfeatures(table, tag):
                             indices.append(lrec.LangSys.ReqFeatureIndex)
                 else:
                     indices += srec.Script.DefaultLangSys.FeatureIndex
+                    indices.append(srec.Script.DefaultLangSys.ReqFeatureIndex)
+                    for lrec in srec.Script.LangSysRecord:
+                        indices += lrec.LangSys.FeatureIndex
+                        indices.append(lrec.LangSys.ReqFeatureIndex)
             for i in indices:
                 if i == 0xFFFF:
                     continue
@@ -420,7 +424,6 @@ class Font:
 
         self._setmeta(otf)
         self._setstat(otf)
-        self._setfeatureparams(otf)
 
         return otf
 
@@ -763,6 +766,7 @@ class Font:
 
             vf = self._postprocess(vf)
             vf = self._autohint(vf)
+            self._setfeatureparams(vf)
             self._subset(vf)
             self._instanciate(vf)
             self._addvfsuffix(vf)
@@ -827,6 +831,7 @@ class Font:
 
             otf = self._postprocess(otf)
             otf = self._autohint(otf)
+            self._setfeatureparams(otf)
             self._subset(otf)
             self._optimize(otf)
             self._buildwoff(otf)
