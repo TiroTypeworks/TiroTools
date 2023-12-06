@@ -56,7 +56,7 @@ glyphname2
 glyphname3
 ```
 
-Where glyph class is one of “base”, “mark”, “ligature”, and “component”.
+Where glyph class is one of “base”, “mark”, “ligature”, and “component”. For ligatures, glyph name can optionally be followed by space then the number of components, e.g. `ffi 3`.
 
 Usage example:
 

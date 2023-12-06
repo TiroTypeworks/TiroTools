@@ -26,30 +26,41 @@ def parsegdef(filepath):
         lines = f.readlines()
 
     gdef = {}
-    gclass = None
+    gtype = None
     for line in lines:
         line = line.strip()
         if line.startswith("#"):
-            gclass = line[1:].strip()
-            if gclass not in GDEF_CLASSES:
+            gtype = line[1:].strip()
+            if gtype not in GDEF_CLASSES:
                 raise KeyError(
-                    f"Unknown glyph class “{gclass}”, must be one of: "
+                    f"Unknown glyph class “{gtype}”, must be one of: "
                     f"{', '.join(GDEF_CLASSES)}"
                 )
-        elif not gclass:
+        elif not gtype:
             raise ValueError(f"A glyph class must be dfined before the first glyph")
         else:
-            gdef[line] = gclass
+            gname = line.split()
+            if len(gname) == 2 and gtype == "ligature" and gname[1].isdigit():
+                gname, components = gname
+                gdef[gname] = [gtype, components]
+            elif len(gname) != 1:
+                raise ValueError(
+                    f"Glyph name “{line}” is not valid, must be a single word"
+                )
+            else:
+                gname = gname[0]
+                gdef[gname] = [gtype]
 
     return gdef
 
 
 def setgdef(vtp, gdef, missing):
-    print(gdef)
     for statement in vtp.statements:
         if isinstance(statement, ast.GlyphDefinition):
             if statement.name in gdef:
-                statement.type = gdef[statement.name].upper()
+                statement.type = gdef[statement.name][0].upper()
+                if len(gdef[statement.name]) == 2:
+                    statement.components = int(gdef[statement.name][1])
             elif missing != "keep":
                 statement.type = missing.upper()
 
