@@ -147,6 +147,10 @@ def collectfeatures(table, tag):
                             indices.append(lrec.LangSys.ReqFeatureIndex)
                 else:
                     indices += srec.Script.DefaultLangSys.FeatureIndex
+                    indices.append(srec.Script.DefaultLangSys.ReqFeatureIndex)
+                    for lrec in srec.Script.LangSysRecord:
+                        indices += lrec.LangSys.FeatureIndex
+                        indices.append(lrec.LangSys.ReqFeatureIndex)
             for i in indices:
                 if i == 0xFFFF:
                     continue
