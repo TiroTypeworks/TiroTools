@@ -35,6 +35,9 @@ Scales all GPOS data in a VOLT project file.
 ### VTPtools : vtp-skew
 Adjusts rise-over-run coordinates for GPOS data in a VOLT project file to a defined slant angle.
 
+### VTPtools : vtp-gdef
+Sets the GDEF glyph classes in a VOLT project from an input text file.
+
 ### VFJtools : vfj-propagate-anchors
 Propagates anchors from base to composite glyphs in FontLab 7 .vfj sources.
 
