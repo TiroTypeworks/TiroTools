@@ -526,6 +526,55 @@ class Font:
                 self._buildwoff(new)
                 self._save(new)
 
+    def _removeoverlaps(self, otf):
+        from fontTools.ttLib.removeOverlaps import removeOverlaps
+
+        logger.info(f"Removing overlaps from {self.filename}")
+        try:
+            removeOverlaps(otf)
+        except NotImplementedError:
+            if "CFF " not in otf:
+                raise RuntimeError(f"Can’t remove overlaps from {self.filename}")
+        else:
+            return
+
+        # removeOverlaps currently only works on glyf table, so we use tx to remove
+        # CFF overlaps.
+        import cffsubr
+        import subprocess
+        import tempfile
+        import os
+        from fontTools.ttLib import newTable
+
+        cff = otf["CFF "]
+        input_data = cff.compile(otf)
+
+        with tempfile.NamedTemporaryFile(prefix="tx-", delete=False) as in_temp:
+            in_temp.write(input_data)
+
+        with tempfile.NamedTemporaryFile(prefix="tx-", delete=False) as out_temp:
+            out_temp.write(b"")
+
+        args = ["-cff", "+S", "+V", "+b", "-o", out_temp.name, in_temp.name]
+        kwargs = dict(check=True, stderr=subprocess.PIPE)
+
+        try:
+            cffsubr._run_embedded_tx(*args, **kwargs)
+        except subprocess.CalledProcessError as e:
+            raise RuntimeError(e.stderr.decode())
+        else:
+            with open(out_temp.name, "rb") as fp:
+                output_data = fp.read()
+        finally:
+            os.remove(in_temp.name)
+            os.remove(out_temp.name)
+
+        cff = newTable("CFF ")
+        cff.decompile(output_data, otf)
+
+        del otf["CFF "]
+        otf["CFF "] = cff
+
     def _instanciate(self, vf):
         if self.instances is None or not self.variable:
             return
@@ -582,6 +631,7 @@ class Font:
                 self.names = conf.get("names")
                 self._postprocess(otf)
                 self._optimize(otf)
+                self._removeoverlaps(otf)
                 self._save(otf)
                 self._buildwoff(otf)
 
