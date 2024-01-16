@@ -16,7 +16,7 @@ def _attachment_lookup(name):
         True,
         True,
         None,
-        'LTR',
+        "LTR",
         False,
         None,
         None,
@@ -36,8 +36,8 @@ def exportVoltAnchors(font):
             layer = glyph.layers[master.name]
             for anchor in layer.anchors:
                 name = anchor.name
-                if not name.startswith('_') and glyph.openTypeGlyphClass == 3:
-                    mkmk.add(name.split('_')[0])
+                if not name.startswith("_") and glyph.openTypeGlyphClass == 3:
+                    mkmk.add(name.split("_")[0])
 
         # Collect anchors that need ligature lookups (anchor with index).
         ligs = set()
@@ -45,10 +45,10 @@ def exportVoltAnchors(font):
             layer = glyph.layers[master.name]
             for anchor in layer.anchors:
                 name = anchor.name
-                if name.startswith('_'):
+                if name.startswith("_"):
                     name = name[1:]
-                if '_' in name:
-                    ligs.add(name.split('_')[0])
+                if "_" in name:
+                    ligs.add(name.split("_")[0])
 
         lookups = {}
         groups = {}
@@ -58,7 +58,7 @@ def exportVoltAnchors(font):
             for anchor in layer.anchors:
                 x = otRound(anchor.x)
                 y = otRound(anchor.y)
-                if anchor.name.startswith('_'):
+                if anchor.name.startswith("_"):
                     # Mark anchor.
                     if glyph.openTypeGlyphClass != 3:
                         # Not a mark glyph? Ignore the anchor or VOLT will error.
@@ -67,7 +67,7 @@ def exportVoltAnchors(font):
                     name = anchor.name[1:]
 
                     # Add to groups. We build groups for mark glyphs by anchor.
-                    group = f'MARK_{name}'
+                    group = f"MARK_{name}"
                     if group not in groups:
                         groups[group] = set()
                     groups[group].add(glyph.name)
@@ -75,11 +75,11 @@ def exportVoltAnchors(font):
                     # mkmk anchors are added to both mark and mkmk lookups
                     # because they might be used with non-mark bases after
                     # anchor propagation.
-                    lookupnames = [f'mark_{name}']
+                    lookupnames = [f"mark_{name}"]
                     if name in mkmk:
-                        lookupnames.append(f'mkmk_{name}')
+                        lookupnames.append(f"mkmk_{name}")
                     if name in ligs:
-                        lookupnames.append(f'mark_{name}_ligs')
+                        lookupnames.append(f"mark_{name}_ligs")
 
                     # Add the glyph to respective lookup(s).
                     for lookupname in lookupnames:
@@ -89,7 +89,7 @@ def exportVoltAnchors(font):
                         # For mkmk lookups we use individual glyphs, for mark
                         # lookups we use groups. There is no technical reason
                         # for this, just how JH likes it.
-                        if lookupname.startswith('mkmk'):
+                        if lookupname.startswith("mkmk"):
                             to = ([ast.GlyphName(glyph.name)], name)
                             lookups[lookupname].pos.coverage_to.append(to)
                         elif not lookups[lookupname].pos.coverage_to:
@@ -97,7 +97,7 @@ def exportVoltAnchors(font):
                             lookups[lookupname].pos.coverage_to.append(to)
 
                     # Add the anchor.
-                    name, comp = f'MARK_{name}', 1
+                    name, comp = f"MARK_{name}", 1
                     pos = ast.Pos(None, x, y, {}, {}, {})
                     gid = glyphOrder.index(glyph.name)
                     anchors.append(
@@ -106,16 +106,16 @@ def exportVoltAnchors(font):
                 else:
                     # Base anchor.
                     name, comp = anchor.name, 1
-                    lookupname = f'mark_{name}'
-                    if '_' in name:
+                    lookupname = f"mark_{name}"
+                    if "_" in name:
                         # Split ligature anchor (e.g. “top_1” and use the
                         # number for ligature component.
-                        name, comp = name.split('_')
-                        lookupname = f'mark_{name}_ligs'
+                        name, comp = name.split("_")
+                        lookupname = f"mark_{name}_ligs"
 
                     if glyph.openTypeGlyphClass == 3:
                         # If this is a mark glyph, then add to mkmk lookup.
-                        lookupname = f'mkmk_{name}'
+                        lookupname = f"mkmk_{name}"
 
                     # Add the glyph to respective lookup.
                     if lookupname not in lookups:
@@ -130,7 +130,7 @@ def exportVoltAnchors(font):
                     )
 
         # Save groups file.
-        with open(master.psn + '-anchors.vtg', 'w') as fp:
+        with open(master.psn + "-anchors.vtg", "w") as fp:
             doc = ast.VoltFile()
             for group in groups:
                 glyphs = tuple(ast.GlyphName(g) for g in sorted(groups[group]))
@@ -139,7 +139,7 @@ def exportVoltAnchors(font):
             fp.write(str(doc))
 
         # Save lookups file.
-        with open(master.psn + '-anchors.vtl', 'w') as fp:
+        with open(master.psn + "-anchors.vtl", "w") as fp:
             doc = ast.VoltFile()
             for lookup in lookups.values():
                 # Sort coverage by glyph ID to be stable.
@@ -154,14 +154,14 @@ def exportVoltAnchors(font):
 
 def _kern_group_name(name):
     if not name.startswith("KERN"):
-        name = 'KERN' + name
+        name = "KERN" + name
     return name
 
 
 def _kern_coverage(names):
     ret = []
     for name in names:
-        if name.startswith('@'):
+        if name.startswith("@"):
             ret.append([ast.GroupName(_kern_group_name(name[1:]), None)])
         else:
             ret.append([ast.GlyphName(name)])
@@ -190,19 +190,19 @@ def _warn_overlapping_classes(master, groups):
 
     for (name1, name2), duplicates in overlapping.items():
         logging.warning(
-            f'Kerning classes {name1} and {name2} overlap in {master.name}:\n'
+            f"Kerning classes {name1} and {name2} overlap in {master.name}:\n"
             f'{", ".join(sorted(duplicates))}\n'
         )
 
 
 def _sart_pair_lookup(lookups, kind="PPF1"):
-    name = fr'kern\{len(lookups) + 1}_{kind}'
+    name = rf"kern\{len(lookups) + 1}_{kind}"
     lookup = ast.LookupDefinition(
         name,
         True,
         False,
         None,
-        'LTR',
+        "LTR",
         False,
         None,
         None,
@@ -266,33 +266,33 @@ def exportVoltKerning(font, max_pairs):
         # Write format 1 lookup for individual glyph pairs first.
         _sart_pair_lookup(lookups)
         for (left, right), value in pairs:
-            if not left.startswith('@') and not right.startswith('@'):
+            if not left.startswith("@") and not right.startswith("@"):
                 _kern_pair(lookups, left, right, value, max_pairs, classes)
 
         # Then write format 1 lookup for pairs where right side is a class.
         _sart_pair_lookup(lookups)
         for (left, right), value in pairs:
-            if not left.startswith('@') and right.startswith('@'):
+            if not left.startswith("@") and right.startswith("@"):
                 _kern_pair(lookups, left, right, value, max_pairs, classes)
 
         # Then write format 1 lookup for pairs where left side is a class.
         _sart_pair_lookup(lookups)
         for (left, right), value in pairs:
-            if left.startswith('@') and not right.startswith('@'):
+            if left.startswith("@") and not right.startswith("@"):
                 _kern_pair(lookups, left, right, value, max_pairs, classes)
 
         # Lastly write format 2 (class kerning). We also collect used groups to
         # avoid writing groups not used in kerning.
         _sart_pair_lookup(lookups, "PPF2")
         for (left, right), value in pairs:
-            if left.startswith('@') and right.startswith('@'):
+            if left.startswith("@") and right.startswith("@"):
                 groups.update([left[1:], right[1:]])
                 _kern_pair(lookups, left, right, value)
 
         _warn_overlapping_classes(master, groups)
 
         # Save groups file.
-        with open(master.psn + '-kerning.vtg', 'w') as fp:
+        with open(master.psn + "-kerning.vtg", "w") as fp:
             doc = ast.VoltFile()
             for name in sorted(groups):
                 glyphs = tuple(ast.GlyphName(g) for g in sorted(classes[name]))
@@ -301,7 +301,7 @@ def exportVoltKerning(font, max_pairs):
             fp.write(str(doc))
 
         # Save lookups file.
-        with open(master.psn + '-kerning.vtl', 'w') as fp:
+        with open(master.psn + "-kerning.vtl", "w") as fp:
             for lookup in lookups:
                 lookup.pos.coverages_1 = _kern_coverage(lookup.pos.coverages_1)
                 lookup.pos.coverages_2 = _kern_coverage(lookup.pos.coverages_2)
@@ -319,13 +319,13 @@ def main(args=None):
     parser.add_argument(
         "-a",
         "--anchors",
-        action='store_true',
+        action="store_true",
         help="write VOLT anchors and glyph groups",
     )
     parser.add_argument(
         "-k",
         "--kerning",
-        action='store_true',
+        action="store_true",
         help="write VOLT kerning and glyph groups",
     )
     parser.add_argument(

@@ -8,12 +8,12 @@ class Transformation:
         self.data = data
         self.transform = Identity
         if data:
-            xOffset = data.get('xOffset', 0)
-            yOffset = data.get('yOffset', 0)
+            xOffset = data.get("xOffset", 0)
+            yOffset = data.get("yOffset", 0)
             if xOffset or yOffset:
                 self.transform = self.transform.translate(xOffset, yOffset)
-            xScale = data.get('xScale', 1)
-            yScale = data.get('yScale', 1)
+            xScale = data.get("xScale", 1)
+            yScale = data.get("yScale", 1)
             if xScale != 1 and yScale != 1:
                 self.transform = self.transform.scale(xScale, yScale)
 
@@ -24,14 +24,14 @@ class Transformation:
         return bool(self.transform)
 
     def __repr__(self):
-        return f'{self.transform.toPS()}'
+        return f"{self.transform.toPS()}"
 
 
 class Component:
     def __init__(self, data):
         self.data = data
-        self.name = data.get('component').get('glyphName')
-        self.transform = Transformation(data.get('transform'))
+        self.name = data.get("component").get("glyphName")
+        self.transform = Transformation(data.get("transform"))
 
     def __repr__(self):
         if self.transform:
@@ -42,8 +42,8 @@ class Component:
 class Anchor:
     def __init__(self, data):
         self.data = data
-        self.name = data.get('name')
-        self._x, self._y = [float(v) for v in data.get('point', '0 0').split()]
+        self.name = data.get("name")
+        self._x, self._y = [float(v) for v in data.get("point", "0 0").split()]
 
     @property
     def x(self):
@@ -52,7 +52,7 @@ class Anchor:
     @x.setter
     def x(self, x):
         self._x = x
-        self.data['point'] = f'{x} {self.y}'
+        self.data["point"] = f"{x} {self.y}"
 
     @property
     def y(self):
@@ -61,7 +61,7 @@ class Anchor:
     @y.setter
     def y(self, y):
         self._y = y
-        self.data['point'] = f'{self.x} {y}'
+        self.data["point"] = f"{self.x} {y}"
 
     def __repr__(self):
         name, x, y = self.name, self.x, self.y
@@ -71,10 +71,10 @@ class Anchor:
 class Anchors:
     def __init__(self, data):
         self.data = data
-        self.anchors = {a.get('name'): Anchor(a) for a in data}
+        self.anchors = {a.get("name"): Anchor(a) for a in data}
 
     def addAnchor(self, data):
-        self[data['name']] = Anchor(data)
+        self[data["name"]] = Anchor(data)
         self.data.append(data)
 
     def __len__(self):
@@ -101,16 +101,16 @@ class Layer:
     def __init__(self, data, glyph=None):
         self.data = data
         self.glyph = glyph
-        self.name = data.get('name')
-        self.advanceWidth = data.get('advanceWidth')
-        self.anchors = Anchors(data.get('anchors', []))
+        self.name = data.get("name")
+        self.advanceWidth = data.get("advanceWidth")
+        self.anchors = Anchors(data.get("anchors", []))
 
-        elements = data.get('elements', [])
-        self.components = [Component(e) for e in elements if e.get('component')]
+        elements = data.get("elements", [])
+        self.components = [Component(e) for e in elements if e.get("component")]
         self.contours = []
         for element in elements:
-            contours = element.get('elementData', {}).get('contours', [])
-            self.contours.extend(c['nodes'] for c in contours)
+            contours = element.get("elementData", {}).get("contours", [])
+            self.contours.extend(c["nodes"] for c in contours)
 
         self._anchorsPropagated = False
 
@@ -128,15 +128,15 @@ class Layer:
                     break
 
         # For multiple mkmk anchors, keep only the top most or bottom most one.
-        if name.endswith('.mkmk'):
+        if name.endswith(".mkmk"):
             anchors = [max(anchors, key=lambda x: abs(x[1]))]
 
         for i, (x, y) in enumerate(anchors):
             n = name
             if len(anchors) > 1:
                 # Multiple anchors, turn into ligature anchor.
-                n = f'{name}_{i + 1}'
-            self.anchors.addAnchor(dict(name=n, point=f'{x:g} {y:g}'))
+                n = f"{name}_{i + 1}"
+            self.anchors.addAnchor(dict(name=n, point=f"{x:g} {y:g}"))
 
     def propagateAnchors(self):
         if self._anchorsPropagated:
@@ -155,13 +155,13 @@ class Layer:
         # Add anchors.
         for name in sorted(names):
             # Skip mark anchors, or base anchors with corresponding mkmk ones.
-            if name.startswith('_') or f'{name}.mkmk' in names:
+            if name.startswith("_") or f"{name}.mkmk" in names:
                 continue
             if not any(a.name.startswith(name) for a in self.anchors):
                 self._addAnchors(name)
 
-        if self.anchors and 'anchors' not in self.data:
-            self.data['anchors'] = self.anchors.data
+        if self.anchors and "anchors" not in self.data:
+            self.data["anchors"] = self.anchors.data
 
     def __repr__(self):
         return f'<{self.__class__.__name__} "{self.name}">'
@@ -170,7 +170,7 @@ class Layer:
 class Layers:
     def __init__(self, data, glyph=None):
         self.data = data
-        self.layers = {l.get('name'): Layer(l, glyph) for l in data}
+        self.layers = {l.get("name"): Layer(l, glyph) for l in data}
 
     def __len__(self):
         return len(self.layers)
@@ -193,10 +193,10 @@ class Glyph:
     def __init__(self, data, font=None):
         self.data = data
         self.font = font
-        self.name = data.get('name')
-        self.openTypeGlyphClass = data.get('openTypeGlyphClass')
-        self.layers = Layers(data.get('layers', []), self)
-        self.unicode = [int(u, 16) for u in data.get('unicode', '').split(',') if u]
+        self.name = data.get("name")
+        self.openTypeGlyphClass = data.get("openTypeGlyphClass")
+        self.layers = Layers(data.get("layers", []), self)
+        self.unicode = [int(u, 16) for u in data.get("unicode", "").split(",") if u]
 
     def propagateAnchors(self):
         for layer in self.layers:
@@ -208,22 +208,22 @@ class Glyph:
 
 class KerningClass:
     def __init__(self, data):
-        self.name = data.get('name')
-        self.first = data.get('1st')
-        self.names = data.get('names')
+        self.name = data.get("name")
+        self.first = data.get("1st")
+        self.names = data.get("names")
 
 
 class Kerning:
     def __init__(self, data):
         self.data = data
-        self.classes = [KerningClass(k) for k in data.get('kerningClasses', [])]
-        self.pairs = data.get('pairs', {})
+        self.classes = [KerningClass(k) for k in data.get("kerningClasses", [])]
+        self.pairs = data.get("pairs", {})
 
 
 class Master:
     def __init__(self, data, font=None):
         self.font = font
-        self.data = data['fontMaster']
+        self.data = data["fontMaster"]
 
         for key, value in self.data.items():
             setattr(self, key, value)
@@ -240,7 +240,7 @@ class Info:
         for key, value in data.items():
             setattr(self, key, value)
 
-        self.creationDate = datetime.strptime(self.creationDate, '%Y/%m/%d %H:%M:%S')
+        self.creationDate = datetime.strptime(self.creationDate, "%Y/%m/%d %H:%M:%S")
 
     def __repr__(self):
         return f'<{self.__class__.__name__} "{self.tfn}">'
@@ -251,25 +251,25 @@ class Font:
         with open(path) as f:
             data = json.load(f)
         self.data = data
-        self.version = data.get('version')
-        assert self.version == 8, f'Unsupported VFJ version: {self.version}'
+        self.version = data.get("version")
+        assert self.version == 8, f"Unsupported VFJ version: {self.version}"
 
-        data = data.get('font')
+        data = data.get("font")
 
-        self.glyphs = {g.get('name'): Glyph(g, self) for g in data.get('glyphs')}
-        assert len(self.glyphs) == data.get('glyphsCount')
+        self.glyphs = {g.get("name"): Glyph(g, self) for g in data.get("glyphs")}
+        assert len(self.glyphs) == data.get("glyphsCount")
 
-        self.masters = [Master(m, self) for m in data.get('masters', [])]
+        self.masters = [Master(m, self) for m in data.get("masters", [])]
 
-        self.info = Info(data.get('info'))
-        self.upm = data.get('upm', 1000)
+        self.info = Info(data.get("info"))
+        self.upm = data.get("upm", 1000)
 
     def propagateAnchors(self):
         for glyph in self:
             glyph.propagateAnchors()
 
     def save(self, path):
-        with open(path, 'w') as f:
+        with open(path, "w") as f:
             json.dump(self.data, f, indent=2)
 
     def __len__(self):
