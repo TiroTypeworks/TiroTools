@@ -261,7 +261,6 @@ def exportVoltKerning(font, max_pairs):
                 pairs.append(((left, right), otRound(float(value))))
 
         lookups = []
-        groups = set()
 
         # Write format 1 lookup for individual glyph pairs first.
         _sart_pair_lookup(lookups)
@@ -281,13 +280,19 @@ def exportVoltKerning(font, max_pairs):
             if left.startswith("@") and not right.startswith("@"):
                 _kern_pair(lookups, left, right, value, max_pairs, classes)
 
-        # Lastly write format 2 (class kerning). We also collect used groups to
-        # avoid writing groups not used in kerning.
+        # Lastly write format 2 (class kerning).
         _sart_pair_lookup(lookups, "PPF2")
         for (left, right), value in pairs:
             if left.startswith("@") and right.startswith("@"):
-                groups.update([left[1:], right[1:]])
                 _kern_pair(lookups, left, right, value)
+
+        # Collect used groups to avoid writing groups not used in kerning.
+        groups = set()
+        for (left, right), value in pairs:
+            if left.startswith("@"):
+                groups.add(left[1:])
+            if right.startswith("@"):
+                groups.add(right[1:])
 
         _warn_overlapping_classes(master, groups)
 
