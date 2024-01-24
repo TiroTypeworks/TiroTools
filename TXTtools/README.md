@@ -11,7 +11,7 @@ These tools require Python 3.
 sinhala.py
 -----
 
-This Sinhala text formatting tool will contextually insert (or delete) the Zero Width Joiner (ZWJ, U+200D) control character to affect four different orthographic forms of Sinhala script. The orthographic forms are cumulative.
+This Sinhala text formatting tool will contextually insert (or delete) the Zero Width Joiner (ZWJ, U+200D) control character to affect four different orthographic forms of Sinhala script. The orthographic forms are cumulative, so the -l option includes the -y insertions, and the -c option includes the -y and -l insertions.
 
 Usage:
 
@@ -29,7 +29,7 @@ The options are:
 
 **-l** inserts ZWJ after select *al-lakuna* characters to trigger traditional ligature forms*** as well as *rephaya, rakaaraansaya* and *yansaya* forms.
 
-**-c** insert ZWJ before all remaining *al-lakuna* characters to trigger touching behaviour for all remaining conjuncts, as well as traditional ligature and *rephaya, rakaaraansaya* and *yansaya* forms.
+**-c** inserts ZWJ before all remaining *al-lakuna* characters to trigger touching behaviour for all remaining conjuncts, as well as traditional ligature and *rephaya, rakaaraansaya* and *yansaya* forms.
 _____
 
 *The -r option can be used with any of the other three options, so that you can e.g. remove all formatting from existing text then insert ZWJ as needed in one pass. The other options are mutually exclusive.
