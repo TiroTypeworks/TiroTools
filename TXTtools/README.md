@@ -36,4 +36,4 @@ _____
 
 **The -r option also removes any Zero Width Non-Joiner (ZWNJ, U+200C) characters, although these are not expected in Sinhala text, having no defined formatting role for the script in the Unicode Standard.
 
-***These ligature forms are font-specific. The ligatures specified in the script conform to thise supported in the Tiro Sinhala font, consisting of ක්‍ව ක්‍ෂ ග්‍ධ ච්‍ච ඤ්‍ච ඤ්‍ඡ ට්‍ඨ ත්‍ථ ව ද්‍ධ ද්‍ව න්‍ථ න්‍ද න්‍ධ න්‍ව ඳ්‍ඨ ඳ්‍ධ ඳ්‍ව බ්‍බ
+***These ligature forms are font-specific. The ligatures specified in the script conform to those supported in the Tiro Sinhala font, consisting of ක්‍ව ක්‍ෂ ග්‍ධ ච්‍ච ඤ්‍ච ඤ්‍ඡ ට්‍ඨ ත්‍ථ ව ද්‍ධ ද්‍ව න්‍ථ න්‍ද න්‍ධ න්‍ව ඳ්‍ඨ ඳ්‍ධ ඳ්‍ව බ්‍බ
