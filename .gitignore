@@ -1,3 +1,4 @@
+/venv
+*/work
 *.egg-info
 __pycache__
-venv
