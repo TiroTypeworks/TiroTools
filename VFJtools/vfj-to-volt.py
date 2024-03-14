@@ -258,6 +258,9 @@ def exportVoltKerning(font, max_pairs):
         pairs = []
         for left in master.kerning.pairs:
             for right, value in master.kerning.pairs[left].items():
+                if ";" in value:
+                    # This seems to be the Flag color applied to the pair in FL UI.
+                    value = value.split(";")[0]
                 pairs.append(((left, right), otRound(float(value))))
 
         lookups = []
