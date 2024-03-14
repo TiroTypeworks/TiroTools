@@ -217,9 +217,11 @@ nullpos = ast.Pos(None, None, None, {}, {}, {})
 
 
 def _pair_len(left, right, classes):
+    if left.startswith("@") and right.startswith("@"):
+        return 1
     if left.startswith("@"):
         return len(classes[left[1:]])
-    elif right.startswith("@"):
+    if right.startswith("@"):
         return len(classes[right[1:]])
     return 1
 
@@ -258,6 +260,9 @@ def exportVoltKerning(font, max_pairs):
         pairs = []
         for left in master.kerning.pairs:
             for right, value in master.kerning.pairs[left].items():
+                if ";" in value:
+                    # This seems to be the Flag color applied to the pair in FL UI.
+                    value = value.split(";")[0]
                 pairs.append(((left, right), otRound(float(value))))
 
         lookups = []
@@ -284,7 +289,7 @@ def exportVoltKerning(font, max_pairs):
         _sart_pair_lookup(lookups, "PPF2")
         for (left, right), value in pairs:
             if left.startswith("@") and right.startswith("@"):
-                _kern_pair(lookups, left, right, value)
+                _kern_pair(lookups, left, right, value, max_pairs, classes)
 
         # Collect used groups to avoid writing groups not used in kerning.
         groups = set()
