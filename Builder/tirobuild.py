@@ -535,11 +535,9 @@ class Font:
         logger.info(f"Removing overlaps from {self.filename}")
         try:
             removeOverlaps(otf)
+            return otf
         except NotImplementedError:
-            if "CFF " not in otf:
-                raise RuntimeError(f"Can’t remove overlaps from {self.filename}")
-        else:
-            return
+            pass
 
         # removeOverlaps currently only works on glyf table, so we use tx to remove
         # CFF overlaps.
@@ -547,10 +545,19 @@ class Font:
         import subprocess
         import tempfile
         import os
+        from io import BytesIO
         from fontTools.ttLib import newTable
 
-        cff = otf["CFF "]
-        input_data = cff.compile(otf)
+        if "CFF " in otf:
+            tag = "CFF "
+        elif "CFF2" in otf:
+            tag = "CFF2"
+        else:
+            raise RuntimeError(f"Can’t remove overlaps from {self.filename}")
+
+        buf = BytesIO()
+        otf.save(buf)
+        input_data = buf.getvalue()
 
         with tempfile.NamedTemporaryFile(prefix="tx-", delete=False) as in_temp:
             in_temp.write(input_data)
@@ -558,7 +565,14 @@ class Font:
         with tempfile.NamedTemporaryFile(prefix="tx-", delete=False) as out_temp:
             out_temp.write(b"")
 
-        args = ["-cff", "+S", "+V", "+b", "-o", out_temp.name, in_temp.name]
+        args = [
+            f"-{tag.rstrip().lower()}",
+            "+V",
+            "+b",
+            "-o",
+            out_temp.name,
+            in_temp.name,
+        ]
         kwargs = dict(check=True, stderr=subprocess.PIPE)
 
         try:
@@ -572,11 +586,13 @@ class Font:
             os.remove(in_temp.name)
             os.remove(out_temp.name)
 
-        cff = newTable("CFF ")
+        cff = newTable(tag)
         cff.decompile(output_data, otf)
 
-        del otf["CFF "]
-        otf["CFF "] = cff
+        del otf[tag]
+        otf[tag] = cff
+
+        return otf
 
     def _instanciate(self, vf):
         if self.instances is None or not self.variable:
@@ -632,9 +648,10 @@ class Font:
                     otf = instantiateVariableFont(otf, coordinates, inplace=True)
                 setRibbiBits(otf)
                 self.names = conf.get("names")
-                self._postprocess(otf)
-                self._optimize(otf)
-                self._removeoverlaps(otf)
+                otf = self._postprocess(otf)
+                otf = self._removeoverlaps(otf)
+                otf = self._autohint(otf)
+                otf = self._optimize(otf)
                 self._save(otf)
                 self._buildwoff(otf)
 
