@@ -428,10 +428,13 @@ class Font:
         return otf
 
     def _autohint(self, otf):
+        if self.variable:
+            return otf
+
         from fontTools.ttLib import TTFont
 
         logger.info(f"Autohinting {self.filename}")
-        if self.fmt == Format.TTF and not self.variable:
+        if self.fmt == Format.TTF:
             from io import BytesIO
 
             from ttfautohint import ttfautohint
@@ -815,7 +818,6 @@ class Font:
             vf, _, _ = buildvf(otfds)
 
             vf = self._postprocess(vf)
-            vf = self._autohint(vf)
             self._setfeatureparams(vf)
             self._subset(vf)
             self._instanciate(vf)
