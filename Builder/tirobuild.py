@@ -521,7 +521,7 @@ class Font:
                 self.names = subset.get("names")
                 self.meta = subset.get("meta")
                 self._overridecmap(new, subset.get("cmapoverride"))
-                self._optimize(new)
+                new = self._optimize(new)
                 self._setnames(new)
                 self._setmeta(new)
                 self._instanciate(new)
@@ -680,14 +680,14 @@ class Font:
 
     def _optimize(self, otf):
         if self.variable:
-            return
+            return otf
 
         if "CFF " in otf:
             tag = "CFF "
         elif "CFF2" in otf:
             tag = "CFF2"
         else:
-            return
+            return otf
 
         import cffsubr
         from fontTools.cffLib.specializer import specializeProgram
@@ -701,6 +701,8 @@ class Font:
 
         logger.info(f"Subroutinizing {self.filename}")
         cffsubr.subroutinize(otf, keep_glyph_names=False, cff_version=1)
+
+        return otf
 
     def _addvfsuffix(self, otf):
         names = {}
@@ -822,7 +824,7 @@ class Font:
             self._subset(vf)
             self._instanciate(vf)
             self._addvfsuffix(vf)
-            self._optimize(vf)
+            vf = self._optimize(vf)
             self._buildwoff(vf)
             self._save(vf)
 
@@ -885,7 +887,7 @@ class Font:
             otf = self._autohint(otf)
             self._setfeatureparams(otf)
             self._subset(otf)
-            self._optimize(otf)
+            otf = self._optimize(otf)
             self._buildwoff(otf)
             self._save(otf)
 
