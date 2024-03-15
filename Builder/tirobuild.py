@@ -428,10 +428,13 @@ class Font:
         return otf
 
     def _autohint(self, otf):
+        if self.variable:
+            return otf
+
         from fontTools.ttLib import TTFont
 
         logger.info(f"Autohinting {self.filename}")
-        if self.fmt == Format.TTF and not self.variable:
+        if self.fmt == Format.TTF:
             from io import BytesIO
 
             from ttfautohint import ttfautohint
@@ -518,7 +521,7 @@ class Font:
                 self.names = subset.get("names")
                 self.meta = subset.get("meta")
                 self._overridecmap(new, subset.get("cmapoverride"))
-                self._optimize(new)
+                new = self._optimize(new)
                 self._setnames(new)
                 self._setmeta(new)
                 self._instanciate(new)
@@ -532,11 +535,9 @@ class Font:
         logger.info(f"Removing overlaps from {self.filename}")
         try:
             removeOverlaps(otf)
+            return otf
         except NotImplementedError:
-            if "CFF " not in otf:
-                raise RuntimeError(f"Can’t remove overlaps from {self.filename}")
-        else:
-            return
+            pass
 
         # removeOverlaps currently only works on glyf table, so we use tx to remove
         # CFF overlaps.
@@ -544,10 +545,19 @@ class Font:
         import subprocess
         import tempfile
         import os
+        from io import BytesIO
         from fontTools.ttLib import newTable
 
-        cff = otf["CFF "]
-        input_data = cff.compile(otf)
+        if "CFF " in otf:
+            tag = "CFF "
+        elif "CFF2" in otf:
+            tag = "CFF2"
+        else:
+            raise RuntimeError(f"Can’t remove overlaps from {self.filename}")
+
+        buf = BytesIO()
+        otf.save(buf)
+        input_data = buf.getvalue()
 
         with tempfile.NamedTemporaryFile(prefix="tx-", delete=False) as in_temp:
             in_temp.write(input_data)
@@ -555,7 +565,14 @@ class Font:
         with tempfile.NamedTemporaryFile(prefix="tx-", delete=False) as out_temp:
             out_temp.write(b"")
 
-        args = ["-cff", "+S", "+V", "+b", "-o", out_temp.name, in_temp.name]
+        args = [
+            f"-{tag.rstrip().lower()}",
+            "+V",
+            "+b",
+            "-o",
+            out_temp.name,
+            in_temp.name,
+        ]
         kwargs = dict(check=True, stderr=subprocess.PIPE)
 
         try:
@@ -569,11 +586,13 @@ class Font:
             os.remove(in_temp.name)
             os.remove(out_temp.name)
 
-        cff = newTable("CFF ")
+        cff = newTable(tag)
         cff.decompile(output_data, otf)
 
-        del otf["CFF "]
-        otf["CFF "] = cff
+        del otf[tag]
+        otf[tag] = cff
+
+        return otf
 
     def _instanciate(self, vf):
         if self.instances is None or not self.variable:
@@ -629,9 +648,10 @@ class Font:
                     otf = instantiateVariableFont(otf, coordinates, inplace=True)
                 setRibbiBits(otf)
                 self.names = conf.get("names")
-                self._postprocess(otf)
-                self._optimize(otf)
-                self._removeoverlaps(otf)
+                otf = self._postprocess(otf)
+                otf = self._removeoverlaps(otf)
+                otf = self._autohint(otf)
+                otf = self._optimize(otf)
                 self._save(otf)
                 self._buildwoff(otf)
 
@@ -677,14 +697,14 @@ class Font:
 
     def _optimize(self, otf):
         if self.variable:
-            return
+            return otf
 
         if "CFF " in otf:
             tag = "CFF "
         elif "CFF2" in otf:
             tag = "CFF2"
         else:
-            return
+            return otf
 
         import cffsubr
         from fontTools.cffLib.specializer import specializeProgram
@@ -698,6 +718,8 @@ class Font:
 
         logger.info(f"Subroutinizing {self.filename}")
         cffsubr.subroutinize(otf, keep_glyph_names=False, cff_version=1)
+
+        return otf
 
     def _addvfsuffix(self, otf):
         names = {}
@@ -815,12 +837,11 @@ class Font:
             vf, _, _ = buildvf(otfds)
 
             vf = self._postprocess(vf)
-            vf = self._autohint(vf)
             self._setfeatureparams(vf)
             self._subset(vf)
             self._instanciate(vf)
             self._addvfsuffix(vf)
-            self._optimize(vf)
+            vf = self._optimize(vf)
             self._buildwoff(vf)
             self._save(vf)
 
@@ -883,7 +904,7 @@ class Font:
             otf = self._autohint(otf)
             self._setfeatureparams(otf)
             self._subset(otf)
-            self._optimize(otf)
+            otf = self._optimize(otf)
             self._buildwoff(otf)
             self._save(otf)
 
