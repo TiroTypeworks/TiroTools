@@ -410,8 +410,6 @@ class Font:
             meta.data = {t: ",".join(v) for t, v in self.meta.items()}
 
     def _postprocess(self, otf):
-        self._setnames(otf)
-
         if self.DSIG:
             from fontTools.ttLib import newTable
 
@@ -518,7 +516,7 @@ class Font:
                         else:
                             new["OS/2"].ulCodePageRange2 &= ~(1 << (bit - 32))
 
-                self.names = subset.get("names")
+                self.names = subset.get("names", {})
                 self.meta = subset.get("meta")
                 self._overridecmap(new, subset.get("cmapoverride"))
                 new = self._optimize(new)
@@ -647,7 +645,8 @@ class Font:
                 with pruningUnusedNames(otf):
                     otf = instantiateVariableFont(otf, coordinates, inplace=True)
                 setRibbiBits(otf)
-                self.names = conf.get("names")
+                self.names = conf.get("names", {})
+                otf = self._setnames(otf, fix_psname=True)
                 otf = self._postprocess(otf)
                 otf = self._removeoverlaps(otf)
                 otf = self._autohint(otf)
@@ -655,15 +654,22 @@ class Font:
                 self._save(otf)
                 self._buildwoff(otf)
 
-    def _setnames(self, font):
+    def _setnames(self, font, fix_psname=False):
         font["name"].names = [n for n in font["name"].names if n.platformID == 3]
-        if not self.names:
-            return
+        if not self.names and not fix_psname:
+            return font
 
         logger.info(f"Adding “name” entries to {self.filename}")
 
         # Make a copy as we might modify it.
-        names = self.names.copy()
+        names = {**self.names}
+
+        if 6 not in names and fix_psname:
+            import re
+
+            names[6] = re.sub(
+                r"[^A-Za-z0-9-]", r"", f"{getName(font, 1)}-{getName(font, 2)}"
+            )
 
         # If version or psname IDs are specified, but unique ID is not, update
         # the later.
@@ -694,6 +700,8 @@ class Font:
             topDict.Notice = names.get(7, topDict.Notice)
             if 5 in names:
                 topDict.version = f"{font['head'].fontRevision}"
+
+        return font
 
     def _optimize(self, otf):
         if self.variable:
@@ -840,6 +848,7 @@ class Font:
 
             vf, _, _ = buildvf(otfds)
 
+            vf = self._setnames(vf)
             vf = self._postprocess(vf)
             self._setfeatureparams(vf)
             self._subset(vf)
@@ -904,6 +913,7 @@ class Font:
                 otl = TTFont(self.ttf["source"])
                 otf = self._copytables(otf, otl)
 
+            otf = self._setnames(otf)
             otf = self._postprocess(otf)
             otf = self._autohint(otf)
             self._setfeatureparams(otf)
