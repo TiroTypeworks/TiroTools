@@ -141,7 +141,8 @@ def exportVoltAnchors(font):
         # Save lookups file.
         with open(master.psn + "-anchors.vtl", "w") as fp:
             doc = ast.VoltFile()
-            for lookup in lookups.values():
+            for lookup_name in sorted(lookups):
+                lookup = lookups[lookup_name]
                 # Sort coverage by glyph ID to be stable.
                 lookup.pos.coverage = sorted(
                     [ast.GlyphName(g) for g in lookup.pos.coverage],
