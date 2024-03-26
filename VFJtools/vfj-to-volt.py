@@ -10,12 +10,12 @@ from fontTools.misc.fixedTools import otRound
 from fontTools.voltLib import ast
 
 
-def _attachment_lookup(name):
+def _attachment_lookup(name, mark_glyph_set=None):
     return ast.LookupDefinition(
         name=name,
         process_base=True,
         process_marks=True,
-        mark_glyph_set=None,
+        mark_glyph_set=mark_glyph_set,
         direction="LTR",
         reversal=False,
         comments=None,
@@ -53,13 +53,14 @@ def exportVoltAnchors(font):
         lookups = {}
         groups = {}
         anchors = []
+
+        # Process mark anchors.
         for glyph in font:
             layer = glyph.layers[master.name]
             for anchor in layer.anchors:
-                x = otRound(anchor.x)
-                y = otRound(anchor.y)
                 if anchor.name.startswith("_"):
-                    # Mark anchor.
+                    x = otRound(anchor.x)
+                    y = otRound(anchor.y)
                     if glyph.openTypeGlyphClass != 3:
                         # Not a mark glyph? Ignore the anchor or VOLT will error.
                         continue
@@ -84,7 +85,10 @@ def exportVoltAnchors(font):
                     # Add the glyph to respective lookup(s).
                     for lookup_name in lookup_names:
                         if lookup_name not in lookups:
-                            lookups[lookup_name] = _attachment_lookup(lookup_name)
+                            lookups[lookup_name] = _attachment_lookup(
+                                lookup_name,
+                                group if name not in mkmk else None,
+                            )
 
                         # For mkmk lookups we use individual glyphs, for mark
                         # lookups we use groups. There is no technical reason
@@ -103,8 +107,14 @@ def exportVoltAnchors(font):
                     anchors.append(
                         ast.AnchorDefinition(name, gid, glyph.name, comp, False, pos)
                     )
-                else:
-                    # Base anchor.
+
+        # Process base anchors
+        for glyph in font:
+            layer = glyph.layers[master.name]
+            for anchor in layer.anchors:
+                if not anchor.name.startswith("_"):
+                    x = otRound(anchor.x)
+                    y = otRound(anchor.y)
                     name, comp = anchor.name, 1
                     lookup_name = f"mark_{name}"
                     if "_" in name:
@@ -118,8 +128,6 @@ def exportVoltAnchors(font):
                         lookup_name = f"mkmk_{name}"
 
                     # Add the glyph to respective lookup.
-                    if lookup_name not in lookups:
-                        lookups[lookup_name] = _attachment_lookup(lookup_name)
                     lookups[lookup_name].pos.coverage.add(glyph.name)
 
                     # Add the anchor.
