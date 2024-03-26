@@ -811,6 +811,10 @@ class Font:
         ds = DesignSpaceDocument.fromfile(self.source)
         ds.loadSourceFonts(lambda p: self._openufo(Path(p), self.source))
 
+        options = {"inplace": False}
+        if {"GDEF", "GSUB", "GPOS"}.issubset(self.ttf.get("tables", {})):
+            options["featureWriters"] = []
+
         for fmt in self.formats:
             self.fmt = fmt
             if fmt == Format.TTF:
@@ -820,7 +824,7 @@ class Font:
             else:
                 continue
 
-            otfds = compileFont(ds, inplace=False)
+            otfds = compileFont(ds, **options)
 
             if "source" in self.ttf:
                 from fontTools.ttLib import TTFont
@@ -863,7 +867,7 @@ class Font:
 
             options["removeOverlaps"] = True
             options["overlapsBackend"] = "pathops"
-            if set(self.ttf.get("tables", {})) == {"GDEF", "GSUB", "GPOS"}:
+            if {"GDEF", "GSUB", "GPOS"}.issubset(self.ttf.get("tables", {})):
                 options["featureWriters"] = []
 
             otf = compileFont(
