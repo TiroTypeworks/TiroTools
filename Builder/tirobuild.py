@@ -687,7 +687,10 @@ class Font:
 
             m = re.match("Version (\d\.\d\d)", names[5])
             if m is None:
-                raise ValueError(f"Can’t parse version string: {names[5]}")
+                raise ValueError(
+                    "Can’t parse version string. "
+                    f"“{names[5]}” is not a valid version string."
+                )
             font["head"].fontRevision = float(m.group(1))
 
         if "CFF " in font and any(n in names for n in (0, 1, 4, 5, 6, 7)):
