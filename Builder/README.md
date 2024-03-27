@@ -90,6 +90,29 @@ fonts:
     glyphnames: source/Foo.ren
     ...
 ```
+Here is an snippet of example configuration for explicit static instance generation from a variable build:
+
+```yaml
+instances:
+  Foo-Regular:
+    coordinates:
+      wght: 320
+    names:
+      1: Foo
+      2: Regular
+      4: Foo
+      6: Brill-Regular
+  Foo-Medium
+    coordinates:
+      wght: 360
+    names:
+      1: Foo Medium
+      2: Regular
+      4: Foo Medium
+      6: FooMedium-Regular
+      16: Foo
+      17: Medium
+```
 
 ## All supported keys follow:
 
