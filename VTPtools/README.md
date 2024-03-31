@@ -64,7 +64,7 @@ Usage example:
 python3 vtp-gdef.py input.vtp gdef.txt output.vtp
 ```
 
-Any mssing glyphs from the GDEF text file will be given “base” glyph class, and this can be overriden using `--missing` option. To set missing glyphs to mark:
+Any missing glyphs from the GDEF text file will be given “base” glyph class, and this can be overriden using `--missing` option. To set missing glyphs to mark:
 
 ```
 python3 vtp-gdef.py input.vtp gdef.txt output.vtp --missing=mark
