@@ -652,7 +652,10 @@ class Font:
                     otf = instantiateVariableFont(otf, coordinates, inplace=True)
                 setRibbiBits(otf)
                 self.names = conf.get("names", {})
-                otf = self._setnames(otf, fix_psname=True)
+                drop_typo_names = (1 in self.names and 2 in self.names) or False
+                otf = self._setnames(
+                    otf, fix_psname=True, drop_typo_names=drop_typo_names
+                )
                 otf = self._postprocess(otf)
                 otf = self._removeoverlaps(otf)
                 otf = self._autohint(otf)
@@ -660,7 +663,7 @@ class Font:
                 self._save(otf)
                 self._buildwoff(otf)
 
-    def _setnames(self, font, fix_psname=False):
+    def _setnames(self, font, fix_psname=False, drop_typo_names=False):
         font["name"].names = [n for n in font["name"].names if n.platformID == 3]
         if not self.names and not fix_psname:
             return font
@@ -673,9 +676,13 @@ class Font:
         if 6 not in names and fix_psname:
             import re
 
-            names[6] = re.sub(
-                r"[^A-Za-z0-9-]", r"", f"{getName(font, 1)}-{getName(font, 2)}"
-            )
+            family = names.get(1, getName(font, 1))
+            subfamily = names.get(2, getName(font, 2))
+            names[6] = re.sub(r"[^A-Za-z0-9-]", r"", f"{family}-{subfamily}")
+
+        if drop_typo_names:
+            font["name"].removeNames(16)
+            font["name"].removeNames(17)
 
         # If version or psname IDs are specified, but unique ID is not, update
         # the later.
