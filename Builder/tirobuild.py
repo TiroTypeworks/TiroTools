@@ -161,6 +161,64 @@ def collectfeatures(table, tag):
     return [f.Feature for f in features if f.FeatureTag == tag]
 
 
+def run_tx(otf, options, outTag=None):
+    import cffsubr
+    import subprocess
+    import tempfile
+    import os
+    from io import BytesIO
+    from fontTools.ttLib import newTable
+
+    if "CFF " in otf:
+        tag = "CFF "
+    elif "CFF2" in otf:
+        tag = "CFF2"
+    else:
+        raise RuntimeError(f"Can’t run tx on {otf}")
+
+    if outTag is None:
+        outTag = tag
+
+    buf = BytesIO()
+    otf.save(buf)
+    input_data = buf.getvalue()
+
+    with tempfile.NamedTemporaryFile(prefix="tx-", delete=False) as in_temp:
+        in_temp.write(input_data)
+
+    with tempfile.NamedTemporaryFile(prefix="tx-", delete=False) as out_temp:
+        out_temp.write(b"")
+
+    args = [
+        f"-{outTag.rstrip().lower()}",
+        "+b",
+        *options,
+        "-o",
+        out_temp.name,
+        in_temp.name,
+    ]
+    kwargs = dict(check=True, stderr=subprocess.PIPE)
+
+    try:
+        cffsubr._run_embedded_tx(*args, **kwargs)
+    except subprocess.CalledProcessError as e:
+        raise RuntimeError(e.stderr.decode())
+    else:
+        with open(out_temp.name, "rb") as fp:
+            output_data = fp.read()
+    finally:
+        os.remove(in_temp.name)
+        os.remove(out_temp.name)
+
+    cff = newTable(outTag)
+    cff.decompile(output_data, otf)
+
+    del otf[tag]
+    otf[outTag] = cff
+
+    return otf
+
+
 class Font:
     def __init__(self, name, conf, project):
         self.name = name
@@ -533,63 +591,8 @@ class Font:
         logger.info(f"Removing overlaps from {self.filename}")
         try:
             removeOverlaps(otf)
-            return otf
         except NotImplementedError:
             pass
-
-        # removeOverlaps currently only works on glyf table, so we use tx to remove
-        # CFF overlaps.
-        import cffsubr
-        import subprocess
-        import tempfile
-        import os
-        from io import BytesIO
-        from fontTools.ttLib import newTable
-
-        if "CFF " in otf:
-            tag = "CFF "
-        elif "CFF2" in otf:
-            tag = "CFF2"
-        else:
-            raise RuntimeError(f"Can’t remove overlaps from {self.filename}")
-
-        buf = BytesIO()
-        otf.save(buf)
-        input_data = buf.getvalue()
-
-        with tempfile.NamedTemporaryFile(prefix="tx-", delete=False) as in_temp:
-            in_temp.write(input_data)
-
-        with tempfile.NamedTemporaryFile(prefix="tx-", delete=False) as out_temp:
-            out_temp.write(b"")
-
-        args = [
-            f"-{tag.rstrip().lower()}",
-            "+V",
-            "+b",
-            "-o",
-            out_temp.name,
-            in_temp.name,
-        ]
-        kwargs = dict(check=True, stderr=subprocess.PIPE)
-
-        try:
-            cffsubr._run_embedded_tx(*args, **kwargs)
-        except subprocess.CalledProcessError as e:
-            raise RuntimeError(e.stderr.decode())
-        else:
-            with open(out_temp.name, "rb") as fp:
-                output_data = fp.read()
-        finally:
-            os.remove(in_temp.name)
-            os.remove(out_temp.name)
-
-        cff = newTable(tag)
-        cff.decompile(output_data, otf)
-
-        del otf[tag]
-        otf[tag] = cff
-
         return otf
 
     def _instanciate(self, vf):
@@ -643,6 +646,9 @@ class Font:
                 self.variable = False
                 self.STAT = None
                 with pruningUnusedNames(otf):
+                    if "CFF2" in otf:
+                        coords = ",".join(str(v) for v in coordinates.values())
+                        otf = run_tx(otf, ["+V", "-U", coords], "CFF ")
                     otf = instantiateVariableFont(otf, coordinates, inplace=True)
                 setRibbiBits(otf)
                 self.names = conf.get("names", {})
