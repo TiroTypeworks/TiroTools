@@ -698,7 +698,7 @@ class Font:
         if 5 in names:
             import re
 
-            m = re.match("Version (\d\.\d\d)", names[5])
+            m = re.match(r"Version (\d\.\d\d)", names[5])
             if m is None:
                 raise ValueError(
                     "Can’t parse version string. "
