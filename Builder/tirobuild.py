@@ -32,6 +32,7 @@ class SaveState:
         self.fmt = self.font.fmt
         self.variable = self.font.variable
         self.names = self.font.names
+        self.instances = self.font.instances
         self.STAT = self.font.STAT
         self.meta = self.font.meta
 
@@ -40,6 +41,7 @@ class SaveState:
         self.font.fmt = self.fmt
         self.font.variable = self.variable
         self.font.names = self.names
+        self.font.instances = self.instances
         self.font.STAT = self.STAT
         self.font.meta = self.meta
 
@@ -87,10 +89,10 @@ def instanceName(name, instance, font):
     return name.split("-")[0] + "-" + subfamily
 
 
-def mergeConfigs(first, second):
+def mergeConfigs(first, second, skip=None):
     conf = {**first}
     for key in second:
-        if key == "fonts":
+        if skip and key in skip:
             continue
         if key not in conf:
             conf[key] = second[key]
@@ -225,7 +227,7 @@ class Font:
 
         # Merge keys from the top level (project) configuration into the
         # current font’s conf.
-        conf = mergeConfigs(conf, project)
+        conf = mergeConfigs(conf, project, skip=["fonts"])
 
         self.source = conf.get("source")
         self.ren = conf.get("glyphnames")
@@ -262,7 +264,7 @@ class Font:
                 subset["cmapoverride"] = self._parsecmapoverride(
                     path.parent / subset["cmapoverride"]
                 )
-            self.subsets[name] = mergeConfigs(subset, conf)
+            self.subsets[name] = mergeConfigs(subset, conf, skip=["instances"])
 
         self.names = conf.get("names", {})
         self.set = conf.get("set", {})
@@ -575,6 +577,7 @@ class Font:
                             new["OS/2"].ulCodePageRange2 &= ~(1 << (bit - 32))
 
                 self.names = subset.get("names", {})
+                self.instances = subset.get("instances")
                 self.meta = subset.get("meta")
                 self._overridecmap(new, subset.get("cmapoverride"))
                 new = self._optimize(new)
