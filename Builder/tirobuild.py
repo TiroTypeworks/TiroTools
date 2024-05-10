@@ -219,6 +219,32 @@ def run_tx(otf, options, outTag=None):
     return otf
 
 
+def instantiateCFF2(otf, coordinates):
+    from fontTools.varLib.mutator import interpolate_cff2_metrics
+    from fontTools.misc.fixedTools import floatToFixedToFloat
+    from fontTools.varLib.models import normalizeLocation, piecewiseLinearMap
+
+    # instantiate the CFF2 table using tx, since FontTools.varLib mutator
+    # produces broken glyphs.
+    coords = ",".join(str(v) for v in coordinates.values())
+    otf = run_tx(otf, ["+V", "-U", coords], "CFF ")
+
+    # But tx doesn’t interpolate metrics, so we do it here.
+    topDict = otf["CFF "].cff.topDictIndex[0]
+    glyphOrder = otf.getGlyphOrder()
+    fvarAxes = otf["fvar"].axes
+    axes = {a.axisTag: (a.minValue, a.defaultValue, a.maxValue) for a in fvarAxes}
+    loc = normalizeLocation(coordinates, axes)
+    if "avar" in otf:
+        maps = otf["avar"].segments
+        loc = {k: piecewiseLinearMap(v, maps[k]) for k, v in loc.items()}
+    # Quantize to F2Dot14, to avoid surprise interpolations.
+    loc = {k: floatToFixedToFloat(v, 14) for k, v in loc.items()}
+    interpolate_cff2_metrics(otf, topDict, glyphOrder, loc)
+
+    return otf
+
+
 class Font:
     def __init__(self, name, conf, project):
         self.name = name
@@ -647,8 +673,7 @@ class Font:
                 self.STAT = None
                 with pruningUnusedNames(otf):
                     if "CFF2" in otf:
-                        coords = ",".join(str(v) for v in coordinates.values())
-                        otf = run_tx(otf, ["+V", "-U", coords], "CFF ")
+                        otf = instantiateCFF2(otf, coordinates)
                     otf = instantiateVariableFont(otf, coordinates, inplace=True)
                 setRibbiBits(otf)
                 self.names = conf.get("names", {})
