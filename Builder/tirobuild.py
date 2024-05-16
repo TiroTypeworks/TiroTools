@@ -557,7 +557,6 @@ class Font:
                 logger.info(f"Creating {self.filename} subset")
                 new = deepcopy(otf)
                 options = Options()
-                options.name_IDs = ["*"]
                 options.name_legacy = True
                 options.name_languages = ["*"]
                 options.recommended_glyphs = True
@@ -579,6 +578,10 @@ class Font:
 
                 options.drop_tables.remove("DSIG")
                 options.no_subset_tables += ["DSIG", "meta"]
+
+                options.name_IDs = [
+                    n.nameID for n in otf["name"].names if n.nameID < 256
+                ]
 
                 subsetter = Subsetter(options=options)
                 subsetter.populate(subset["glyphlist"])
