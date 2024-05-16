@@ -1,0 +1,433 @@
+# This is a sample YAML configuration file for a fairly complex
+# project using the Tiro build tool. This project involves setting 
+# the font version from the configuration file, setting embedding 
+# bits, setting meta table design target and supported scripts, 
+# and building both variable and static font families including 
+# subsetting of glyph sets. Some specific name table entries are 
+# provided for each font instance, as well as featureparams name 
+# table entries for ssXX and cvXX GSUB features, distinguished by 
+# script and language. OpenType Layout tables are copied from input 
+# TTF sources, e.g. produced using the MS VOLT tool. Glyph names are
+# switched to uniXXXX/uXXXXX format names compatible with Adobe PDF 
+# glyph-to-character name parsing using a .ren file. The configuration 
+# file also includes data written to the variable font STAT table.
+
+names:
+  5: Version 1.00 
+
+set:
+  fstype: [2]
+
+vf-suffix: VF
+
+meta:
+  slng: [Latn, Grek]
+  dlng: [Latn, Grek]
+
+fonts:
+  FoobarVF-Roman:
+    source: source/Foobar-Roman.designspace
+    names:
+      25: Foobar VF Roman
+    subsets:
+      FoobarVFLatin-Roman:
+        glyphlist: source/LatinSubset.txt
+        names:
+          1: Foobar Latin
+          4: Foobar Latin Roman
+          6: FoobarLatin-Roman
+          17: Roman
+          25: Foobar Latin VF Roman
+        meta:
+          slng: [Latn]
+          dlng: [Latn]
+        instances:
+          FoobarLatin-Regular:
+            coordinates:
+              wght: 400
+            names:
+              1: Foobar Latin
+              2: Regular
+              4: Foobar Latin Roman
+              6: FoobarLatin-Roman
+              17: Roman
+          FoobarLatin-Medium:
+            coordinates:
+              wght: 500
+            names:
+              1: Foobar Latin Medium
+              2: Regular
+              4: Foobar Latin Medium
+              6: FoobarLatinMedium-Regular
+              16: Foobar Latin
+              17: Medium
+          FoobarLatin-Semibold:
+            coordinates:
+              wght: 600
+            names:
+              1: Foobar Latin Semibold
+              2: Regular
+              4: Foobar Latin Semibold
+              6: FoobarLatinSemibold-Regular
+              16: Foobar Latin
+              17: Semibold
+          FoobarLatin-Bold:
+            coordinates:
+              wght: 700
+            names:
+              1: Foobar Latin
+              2: Bold
+              4: Foobar Latin Bold
+              6: FoobarLatin-Bold
+      FoobarVFGreek-Regular:
+        glyphlist: source/GreekSubset.txt
+        names:
+          1: Foobar Greek
+          4: Foobar Greek Regular
+          6: FoobarGreek-Regular
+          17: Regular
+          25: Foobar Greek VF Regular
+        meta:
+          slng: [Latn, Grek]
+          dlng: [Grek]
+        instances:
+          FoobarGreek-Regular:
+            coordinates:
+              wght: 400
+            names:
+              1: Foobar Greek
+              2: Regular
+              4: Foobar Greek Regular
+              6: FoobarGreek-Regular
+          FoobarGreek-Medium:
+            coordinates:
+              wght: 500
+            names:
+              1: Foobar Greek Medium
+              2: Regular
+              4: Foobar Greek Medium
+              6: FoobarGreekMedium-Regular
+              16: Foobar Greek
+              17: Medium
+          FoobarGreek-Semibold:
+            coordinates:
+              wght: 600
+            names:
+              1: Foobar Greek Semibold
+              2: Regular
+              4: Foobar Greek Semibold
+              6: FoobarGreekSemibold-Regular
+              16: Foobar Greek
+              17: Semibold
+          FoobarGreek-Bold:
+            coordinates:
+              wght: 700
+            names:
+              1: Foobar Greek
+              2: Bold
+              4: Foobar Greek Bold
+              6: FoobarGreek-Bold
+    glyphnames: source/FoobarDev2Post.ren
+    ttf:
+      source:
+        - source/Foobar-Regular.input.ttf
+        - source/Foobar-Bold.input.ttf
+      tables: [GDEF, GSUB, GPOS]
+    featureparams:
+      ss01.latn: Round capital Eng
+      ss01.grek: Prosgegrammeni to ypogegrammeni
+      ss02.latn: Round descending capital Eng
+      ss02.grek: Variant capital Iota dialytika
+      cv01:
+        label: Capital Eng
+        tooltip: Round and round descending capital Eng forms
+        characters: [0x014A]
+      cv02:
+        label: Koronis editorial sign
+        tooltip: Sigmoid and horizontal koronis sign forms
+        characters: [0x2E0E]
+    STAT:
+      axes:
+      - name: Weight
+        tag: wght
+        values:
+        - name: Roman
+          value: 400
+          linkedValue: 700
+          flags: 0x2 # ElidableAxisValueName
+        - name: Medium
+          value: 500
+        - name: Semibold
+          value: 600
+        - name: Bold
+          value: 700
+      - name: Italic
+        tag: ital
+        values:
+        - name: Roman
+          value: 0
+          linkedValue: 1
+          flags: 0x2 # ElidableAxisValueName
+      elidedFallbackName: Roman
+    instances:
+      Foobar-Regular:
+        coordinates:
+          wght: 400
+        names:
+          1: Foobar
+          2: Regular
+          4: Foobar Roman
+          6: Foobar-Roman
+          17: Roman
+      Foobar-Medium:
+        coordinates:
+          wght: 500
+        names:
+          1: Foobar Medium
+          2: Regular
+          4: Foobar Medium
+          6: FoobarMedium-Regular
+          16: Foobar
+          17: Medium
+      Foobar-Semibold:
+        coordinates:
+          wght: 600
+        names:
+          1: Foobar Semibold
+          2: Regular
+          4: Foobar Semibold
+          6: FoobarSemibold-Regular
+          16: Foobar
+          17: Semibold
+      Foobar-Bold:
+        coordinates:
+          wght: 700
+        names:
+          1: Foobar
+          2: Bold
+          4: Foobar Bold
+          6: Foobar-Bold
+
+  FoobarVF-Italic:
+    source: source/Foobar-Italic.designspace
+    names:
+      25: Foobar VF Italic
+    subsets:
+      FoobarVFLatin-Italic:
+        glyphlist: source/LatinSubset.txt
+        names:
+          1: Foobar Latin
+          4: Foobar Latin Italic
+          6: FoobarLatin-Italic
+          25: Foobar Latin VF Italic
+        meta:
+          slng: [Latn]
+          dlng: [Latn]
+        instances:
+          FoobarLatin-Italic:
+            coordinates:
+              wght: 400
+            names:
+              1: Foobar Latin
+              2: Italic
+              4: Foobar Latin Italic
+              6: FoobarLatin-Italic
+          FoobarLatin-MediumItalic:
+            coordinates:
+              wght: 500
+            names:
+              1: Foobar Latin Medium
+              2: Italic
+              4: Foobar Latin Italic
+              6: FoobarLatinMedium-Italic
+              16: Foobar Latin
+              17: Medium Italic
+          FoobarLatin-SemiboldItalic:
+            coordinates:
+              wght: 600
+            names:
+              1: Foobar Latin Semibold
+              2: Italic
+              4: Foobar Latin Semibold Italic
+              6: FoobarLatinSemibold-Italic
+              16: Foobar Latin
+              17: Semibold Italic
+          FoobarLatin-BoldItalic:
+            coordinates:
+              wght: 700
+            names:
+              1: Foobar Latin
+              2: Bold Italic
+              4: Foobar Latin Bold Italic
+              6: FoobarLatin-BoldItalic
+      FoobarVFGreek-Italic:
+        glyphlist: source/GreekSubset.txt
+        names:
+          1: Foobar Greek
+          4: Foobar Greek Italic
+          6: FoobarGreek-Italic
+          25: Foobar Greek VF Italic
+        meta:
+          slng: [Latn, Grek]
+          dlng: [Grek]
+        instances:
+          FoobarGreek-Italic:
+            coordinates:
+              wght: 400
+            names:
+              1: Foobar Greek
+              2: Italic
+              4: Foobar Greek Italic
+              6: FoobarGreek-Italic
+          FoobarGreek-MediumItalic:
+            coordinates:
+              wght: 500
+            names:
+              1: Foobar Greek Medium
+              2: Italic
+              4: Foobar Greek Italic
+              6: FoobarGreekMedium-Italic
+              16: Foobar Greek
+              17: Medium Italic
+          FoobarGreek-SemiboldItalic:
+            coordinates:
+              wght: 600
+            names:
+              1: Foobar Greek Semibold
+              2: Italic
+              4: Foobar Greek Semibold Italic
+              6: FoobarGreekSemibold-Italic
+              16: Foobar Greek
+              17: Semibold Italic
+          FoobarGreek-BoldItalic:
+            coordinates:
+              wght: 700
+            names:
+              1: Foobar Greek
+              2: Bold Italic
+              4: Foobar Greek Bold Italic
+              6: FoobarGreek-BoldItalic
+      FoobarVFCyrillic-Italic:
+        glyphlist: source/CyrillicSubset.txt
+        names:
+          1: Foobar Cyrillic
+          4: Foobar Cyrillic Italic
+          6: FoobarCyrillic-Italic
+          25: Foobar Cyrillic VF Italic
+        meta:
+          slng: [Latn, Cyrl]
+          dlng: [Cyrl]
+        instances:
+          FoobarCyrillic-Italic:
+            coordinates:
+              wght: 400
+            names:
+              1: Foobar Cyrillic
+              2: Italic
+              4: Foobar Cyrillic Italic
+              6: FoobarCyrillic-Italic
+          FoobarCyrillic-MediumItalic:
+            coordinates:
+              wght: 500
+            names:
+              1: Foobar Cyrillic Medium
+              2: Italic
+              4: Foobar Cyrillic Italic
+              6: FoobarCyrillicMedium-Italic
+              16: Foobar Cyrillic
+              17: Medium Italic
+          FoobarCyrillic-SemiboldItalic:
+            coordinates:
+              wght: 600
+            names:
+              1: Foobar Cyrillic Semibold
+              2: Italic
+              4: Foobar Cyrillic Semibold Italic
+              6: FoobarCyrillicSemibold-Italic
+              16: Foobar Cyrillic
+              17: Semibold Italic
+          FoobarCyrillic-BoldItalic:
+            coordinates:
+              wght: 700
+            names:
+              1: Foobar Cyrillic
+              2: Bold Italic
+              4: Foobar Cyrillic Bold Italic
+              6: FoobarCyrillic-BoldItalic
+    glyphnames: source/FoobarDev2Post.ren
+    ttf:
+      source:
+        - source/Foobar-Italic.input.ttf
+        - source/Foobar-BoldItalic.input.ttf
+      tables: [GDEF, GSUB, GPOS]
+    featureparams:
+      ss01.latn: Round capital Eng
+      ss01.grek: Prosgegrammeni to ypogegrammeni
+      ss02.latn: Round descending capital Eng
+      ss02.grek: Variant capital Iota dialytika
+      cv01:
+        label: Capital Eng
+        tooltip: Round and round descending capital Eng forms
+        characters: [0x014A]
+      cv02:
+        label: Koronis editorial sign
+        tooltip: Sigmoid and horizontal koronis sign forms
+        characters: [0x2E0E]
+    STAT:
+      axes:
+      - name: Weight
+        tag: wght
+        values:
+        - name: Italic
+          value: 400
+          linkedValue: 700
+          flags: 0x2 # ElidableAxisValueName
+        - name: Medium
+          value: 500
+        - name: Semibold
+          value: 600
+        - name: Bold
+          value: 700
+      - name: Italic
+        tag: ital
+        values:
+        - name: Italic
+          value: 1
+      elidedFallbackName: Italic
+    instances:
+      Foobar-Italic:
+        coordinates:
+          wght: 400
+        names:
+          1: Foobar
+          2: Italic
+          4: Foobar Italic
+          6: Foobar-Italic
+      Foobar-MediumItalic:
+        coordinates:
+          wght: 500
+        names:
+          1: Foobar Medium
+          2: Italic
+          4: Foobar Medium Italic
+          6: FoobarMedium-Italic
+          16: Foobar
+          17: Medium Italic
+      Foobar-SemiboldItalic:
+        coordinates:
+          wght: 600
+        names:
+          1: Foobar Semibold
+          2: Italic
+          4: Foobar Semibold Italic
+          6: FoobarSemibold-Italic
+          16: Foobar
+          17: Semibold Italic
+      Foobar-BoldItalic:
+        coordinates:
+          wght: 700
+        names:
+          1: Foobar
+          2: Bold Italic
+          4: Foobar Bold Italic
+          6: Foobar-BoldItalic
