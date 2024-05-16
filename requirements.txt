@@ -18,7 +18,7 @@ cffsubr==0.2.9.post1
     # via
     #   -r requirements.in
     #   ufo2ft
-fonttools[ufo,woff]==4.47.2
+fonttools[ufo,woff]==4.51.0
     # via
     #   -r requirements.in
     #   axisregistry
