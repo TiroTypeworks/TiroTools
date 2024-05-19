@@ -338,6 +338,8 @@ class Font:
                         "“featureparams” of character variant must be a dictionary"
                     )
 
+        self.autohinting = conf.get("autohinting", {})
+
     @property
     def ext(self):
         return self.fmt.value
@@ -517,16 +519,28 @@ class Font:
 
         from fontTools.ttLib import TTFont
 
-        logger.info(f"Autohinting {self.filename}")
         if self.fmt == Format.TTF:
+            conf = self.autohinting.get("ttfautohint", {})
+            if conf.get("disable"):
+                return otf
+
+            logger.info(f"Autohinting {self.filename}")
+
             from io import BytesIO
 
             from ttfautohint import ttfautohint
 
+            opts = {"no-info": True, **conf}
+            opts = {k.replace("-", "_"): v for k, v in opts.items()}
+
+            # Pop our own options or options controlling input/output.
+            for key in {"disable", "in_buffer", "in_file", "out_file"}:
+                opts.pop(key, None)
+
             buf = BytesIO()
             otf.save(buf)
             otf.close()
-            data = ttfautohint(in_buffer=buf.getvalue(), no_info=True)
+            data = ttfautohint(in_buffer=buf.getvalue(), **opts)
             otf = TTFont(BytesIO(data))
 
             # Set bit 3 on head.flags
@@ -534,6 +548,12 @@ class Font:
             head = otf["head"]
             head.flags |= 1 << 3
         elif self.fmt == Format.OTF:
+            conf = self.autohinting.get("psautohint", {})
+            if conf.get("disable"):
+                return otf
+
+            logger.info(f"Autohinting {self.filename}")
+
             from tempfile import TemporaryDirectory
 
             from psautohint.__main__ import main as psautohint
