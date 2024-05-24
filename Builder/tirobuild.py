@@ -339,6 +339,7 @@ class Font:
                     )
 
         self.autohinting = conf.get("autohinting", {})
+        self.gasp = conf.get("gasp", {})
 
     @property
     def ext(self):
@@ -398,6 +399,17 @@ class Font:
 
         if "fstype" in self.set:
             ufo.info.openTypeOS2Type = self.set["fstype"]
+
+        if self.gasp:
+            records = []
+            for range in self.gasp:
+                records.append(
+                    {
+                        "rangeMaxPPEM": range["maxPPEM"],
+                        "rangeGaspBehavior": range["behavior"],
+                    }
+                )
+            ufo.info.openTypeGaspRangeRecords = records
 
         return ufo
 

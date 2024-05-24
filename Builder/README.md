@@ -356,9 +356,7 @@ characters: [l, 0x013A]
 
 ---
 
-`autohinting` control the TTF and OTF autohinting options. It currently supports
-to subkeys, `ttfautohint` and `psautohint`, ech accepts a `disable` key to
-disable the respective autohinter, e.g.:
+`autohinting:` control the TTF and OTF autohinting options. It currently supports to subkeys, `ttfautohint` and `psautohint`, ech accepts a `disable` key to disable the respective autohinter, e.g.:
 
 ```yaml
 autohinting:
@@ -371,8 +369,7 @@ autohinting:
 This can be set at project level or at font level, with the font-level settings
 overriding the project-level ones.
 
-`ttfautohint` additionally accepts the following set of keys (check TTFAutohint
-[documentation](https://freetype.org/ttfautohint/doc/ttfautohint.html) for the exact meaning of these keys):
+`ttfautohint` additionally accepts the following set of keys (check TTFAutohint [documentation](https://freetype.org/ttfautohint/doc/ttfautohint.html) for the exact meaning of these keys):
 
 * `control-file`: file path
 * `reference-file`: file path
@@ -400,3 +397,15 @@ overriding the project-level ones.
 * `epoch`: integer
 * `debug`: `true` or `false`
 * `verbose`: `true` or `false`
+
+---
+
+`gasp:` Controls gasp table. The value is a list of gasp ranges, each range sets `maxPPEM` value and `behavior` bits.
+
+```yaml
+gasp:
+  - maxPPEM: 7
+    behavior: [1, 3] # sets bits 1 and 3, GASP_DOGRAY and GASP_SYMMETRIC_SMOOTHING
+  - maxPPEM: 65535
+    behavior: [0, 1, 2, 3] # Sets all the defined bits
+```
