@@ -283,7 +283,7 @@ class Font:
 
         self.subsets = {}
         for name, subset in conf.get("subsets", {}).items():
-            if not "glyphlist" in subset:
+            if "glyphlist" not in subset:
                 raise RuntimeError(f"Subset “{name}” did not provide a glyph list")
             glyphlist, tags = self._parsesubset(path.parent / subset["glyphlist"])
             subset["glyphlist"] = glyphlist
@@ -317,7 +317,7 @@ class Font:
 
         self.STAT = conf.get("STAT")
         if self.STAT:
-            if not "axes" in self.STAT:
+            if "axes" not in self.STAT:
                 raise RuntimeError("“STAT” table must have “axes”")
 
         self.featureparams = conf.get("featureparams", {})
@@ -396,8 +396,10 @@ class Font:
             with open(self.ren, "r") as f:
                 logger.info(f"Setting {path.name} final glyph names")
                 lines = f.read().split("\n")
-                lines = [l.split() for l in lines if l and not l.startswith("%")]
-                ufo.lib[PSNAMES_KEY] = {l[0]: l[1] for l in lines}
+                lines = [
+                    line.split() for line in lines if line and not line.startswith("%")
+                ]
+                ufo.lib[PSNAMES_KEY] = {line[0]: line[1] for line in lines}
 
         if "fstype" in self.set:
             ufo.info.openTypeOS2Type = self.set["fstype"]
@@ -583,7 +585,6 @@ class Font:
 
     def _subset(self, otf):
         from fontTools.subset import Options, Subsetter
-        from ufo2ft.util import calcCodePageRanges
 
         for name, subset in self.subsets.items():
             with SaveState(self):
@@ -902,7 +903,7 @@ class Font:
                 from fontTools.ttLib import TTFont
 
                 if len(otfds.sources) != len(self.ttf["source"]):
-                    raise RuntimeError(f"TTF sources must equal DesignSpace sources")
+                    raise RuntimeError("TTF sources must equal DesignSpace sources")
 
                 for i, source in enumerate(otfds.sources):
                     otl = TTFont(self.ttf["source"][i])
@@ -994,14 +995,14 @@ class Builder:
             project["path"] = path
 
         if project.get("fonts", None) is None:
-            raise RuntimeError(f"Missing or empty top level “fonts:” key.")
+            raise RuntimeError("Missing or empty top level “fonts:” key.")
 
         self.fonts = []
         for name, conf in project.get("fonts", {}).items():
             self.fonts.append(Font(name, conf, project))
 
         if not self.fonts:
-            raise RuntimeError(f"There are no fonts in the project.")
+            raise RuntimeError("There are no fonts in the project.")
 
     def build(self):
         for font in self.fonts:
