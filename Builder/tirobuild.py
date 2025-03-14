@@ -274,9 +274,11 @@ class Font:
         if "source" in self.ttf:
             if self.variable:
                 if not isinstance(self.ttf["source"], list):
-                    raise RuntimeError(f"TTF source must be list for variable fonts")
+                    raise RuntimeError("TTF source must be a list for variable fonts")
                 self.ttf["source"] = [path.parent / p for p in self.ttf["source"]]
             else:
+                if isinstance(self.ttf["source"], list):
+                    raise RuntimeError("TTF source must not be a list for static fonts")
                 self.ttf["source"] = path.parent / self.ttf["source"]
 
         self.subsets = {}
