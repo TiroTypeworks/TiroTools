@@ -233,6 +233,10 @@ def instantiateCFF2(otf, coordinates):
 
     # But tx doesn’t interpolate metrics, so we do it here.
     topDict = otf["CFF "].cff.topDictIndex[0]
+
+    # Some odd rounding happens to TopDict version, so reset it.
+    topDict.version = f"{otf["head"].fontRevision}"
+
     glyphOrder = otf.getGlyphOrder()
     fvarAxes = otf["fvar"].axes
     axes = {a.axisTag: (a.minValue, a.defaultValue, a.maxValue) for a in fvarAxes}
@@ -683,6 +687,10 @@ class Font:
             vf.save(stream)
             stream.seek(0)
             otf = TTFont(stream)
+
+            # Some odd rounding happens to fontRevision when loading from
+            # binary again, so reset it.
+            otf["head"].fontRevision = vf["head"].fontRevision
 
             # Remove Variations PS Name Prefix, and do so before updating the
             # name table so it does not leak into the instance PS name.
