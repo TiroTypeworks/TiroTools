@@ -854,6 +854,8 @@ class Font:
             self._save(new, fmt)
 
     def _save(self, otf, wfmt=None):
+        import re
+
         fmt = self.fmt
         fmtdir = fmt.name
         if self.variable:
@@ -861,7 +863,8 @@ class Font:
         if wfmt is not None:
             fmtdir += wfmt.name
             self.fmt = wfmt
-        parent = self.output / self.name.split("-")[0] / fmtdir
+        name = re.sub(r"\[.*?\]", "", self.name).split("-")[0]
+        parent = self.output / name / fmtdir
         parent.mkdir(parents=True, exist_ok=True)
         path = parent / self.filename
         logger.info(f"Saving {path}")
