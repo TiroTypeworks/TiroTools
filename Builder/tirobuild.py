@@ -244,6 +244,9 @@ def instantiateCFF2(otf, coordinates):
     loc = {k: floatToFixedToFloat(v, 14) for k, v in loc.items()}
     interpolate_cff2_metrics(otf, topDict, glyphOrder, loc)
 
+    # Set post table version to 3.0.
+    otf["post"].formatType = 3.0
+
     return otf
 
 
