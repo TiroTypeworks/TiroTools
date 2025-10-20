@@ -1,5 +1,7 @@
 import json
 from datetime import datetime
+from functools import cached_property
+
 from fontTools.misc.transform import Identity
 
 
@@ -103,7 +105,6 @@ class Layer:
         self.glyph = glyph
         self.name = data.get("name")
         self.advanceWidth = data.get("advanceWidth")
-        self.anchors = Anchors(data.get("anchors", []))
 
         elements = data.get("elements", [])
         self.components = [Component(e) for e in elements if e.get("component")]
@@ -113,6 +114,10 @@ class Layer:
             self.contours.extend(c["nodes"] for c in contours)
 
         self._anchorsPropagated = False
+
+    @cached_property
+    def anchors(self):
+        return Anchors(self.data.setdefault("anchors", []))
 
     def _addAnchors(self, name):
         font = self.glyph.font
