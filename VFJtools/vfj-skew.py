@@ -28,7 +28,25 @@ def main(args=None):
     parser.add_argument("input", type=Path, help="input VFJ file")
     parser.add_argument("output", type=Path, help="output VFJ file")
     parser.add_argument(
-        "-a", "--angle", type=float, required=True, help="the slant angle (in degrees)"
+        "-a",
+        "--angle",
+        type=float,
+        required=True,
+        help="the slant angle (in degrees)",
+    )
+    parser.add_argument(
+        "-x",
+        "--x-offset",
+        type=int,
+        default=0,
+        help="the X offset (default: 0)",
+    )
+    parser.add_argument(
+        "-y",
+        "--y-offset",
+        type=int,
+        default=0,
+        help="the Y offset (default: 0)",
     )
 
     options = parser.parse_args(args)
@@ -36,6 +54,8 @@ def main(args=None):
     font = Font(options.input)
 
     transform = Identity.skew(options.angle * math.pi / 180)
+    if options.x_offset or options.y_offset:
+        transform = transform.translate(options.x_offset, options.y_offset)
     process(font, transform)
 
     font.save(options.output)
