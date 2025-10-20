@@ -19,20 +19,10 @@ def convertAnchors(anchors):
         for anchor_name, glyph_anchors in anchors[glyph_name].items():
             if len(glyph_anchors) == 1:
                 x, y, _ = glyph_anchors[0]
-                out[glyph_name].append(
-                    {
-                        "name": anchor_name,
-                        "point": f"{x} {y}",
-                    }
-                )
+                out[glyph_name].append((anchor_name, x, y))
             else:
                 for x, y, component in glyph_anchors:
-                    out[glyph_name].append(
-                        {
-                            "name": f"{anchor_name}_{component - 1}",
-                            "point": f"{x} {y}",
-                        }
-                    )
+                    out[glyph_name].append((f"{anchor_name}_{component - 1}", x, y))
     return out
 
 
@@ -60,8 +50,13 @@ def copyAnchors(vtp, vfj, layer_name):
     for glyph_name in anchors:
         glyph = vfj[glyph_name]
         layer = glyph.layers[layer_name]
-        for anchor in anchors[glyph_name]:
-            layer.anchors.addAnchor(anchor)
+        for anchor_name, x, y in anchors[glyph_name]:
+            if anchor_name not in layer.anchors:
+                layer.anchors.addAnchor(dict(name=anchor_name, point=f"{x} {y}"))
+            else:
+                anchor = layer.anchors[anchor_name]
+                anchor.x = x
+                anchor.y = y
 
 
 def main(args=None):
