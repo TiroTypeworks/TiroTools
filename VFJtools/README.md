@@ -45,6 +45,21 @@ _top,dieresiscomb,-200,450
 
 Note: the x,y position should be the new anchor location, not the delta from the current location (which will be calculated by the script and applied to matching and corresponding anchors), and the CSV should only redefine each anchor once, on a single key glyph. The key glyph can be any mark glyph that has the named anchor.
 
+vfj-skew.py
+-----
+vfj-skew.py will apply a slant operation to anchor positions in a FontLab .vfj source, calculating appropriate rise-over-run adjustments. [This is similar to the vtp-skew.py script for MS VOLT sources.]
+
+Usage example:
+
+```
+python3 vfj-skew.py -a ANGLE input.vfj output.vfj
+```
+Optionally, x,y offset positions can be defined that will affect all anchor positions (the x offset is useful to compensate for italic angle caret offset in the target .vfj file):
+
+```
+python3 vfj-skew.py -a ANGLE [-x X_OFFSET] [-y Y_OFFSET] input.vfj output.vfj
+```
+
 vfj-to-volt.py
 -----
 
@@ -81,3 +96,18 @@ python3 vfj-to-volt.py input.vfj --kerning -s=15000
 ```
 
 This option is useful to avoid subtable size limit overruns.
+
+vfj-copy-anchors-from-vtp.py
+-----
+vfj-copy-anchors-from-vtp.py will copy anchors defined in an MS VOLT .vtp source (or a .ttf containing a TSIV table) and write them to a FontLab .vfj source.
+
+Usage example, to copy anchors from .vtp source:
+
+```
+python3 vfj-copy-anchors-from-vtp.py input.vtp input.vfj output.vfj
+```
+Optionally, define the target layer in the VFJ to which the anchors should be copied (default is first layer):
+
+```
+python3 vfj-copy-anchors-from-vtp.py input.vtp input.vfj output.vfj -l Regular
+```
