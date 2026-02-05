@@ -1,8 +1,13 @@
 import json
+import logging
+
 from datetime import datetime
 from functools import cached_property
 
 from fontTools.misc.transform import Identity
+
+logging.basicConfig(format="%(levelname)s: %(message)s")
+log = logging.getLogger()
 
 
 class Transformation:
@@ -110,8 +115,15 @@ class Layer:
         self.components = [Component(e) for e in elements if e.get("component")]
         self.contours = []
         for element in elements:
-            contours = element.get("elementData", {}).get("contours", [])
-            self.contours.extend(c["nodes"] for c in contours)
+            elementData = element.get("elementData", {})
+            if isinstance(elementData, dict):
+                contours = elementData.get("contours", [])
+                self.contours.extend(c["nodes"] for c in contours)
+            else:
+                log.warning(
+                    f"Unsupported element reference in glyph '{glyph.name}' "
+                    f"layer '{self.name}': {elementData}"
+                )
 
         self._anchorsPropagated = False
 
