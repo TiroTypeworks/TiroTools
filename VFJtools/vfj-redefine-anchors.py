@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 import argparse
 import csv
+import re
 import sys
 import logging
+from collections import defaultdict
 
 from pathlib import Path
 from vfj import Font
@@ -17,17 +19,16 @@ def debom(string):
 
 
 def process(font, positions):
-    offsets = {}
-    for name in positions:
-        gname, x, y = positions[name]
+    offsets = defaultdict(dict)
+    for (lname, name), (gname, x, y) in positions.items():
         glyph = font[gname]
         if glyph is None:
             log.warning(f"Glyph '{gname}' is missing from font")
             continue
 
         for layer in glyph.layers:
-            if layer.name not in offsets:
-                offsets[layer.name] = {}
+            if lname is not None and layer.name != lname:
+                continue
 
             basename = name
             if name.startswith("_"):
@@ -82,22 +83,37 @@ def main(args=None):
 
     font = Font(options.input)
 
+    layers = {l.name for g in font for l in g.layers}
+
     positions = {}
+    layer_re = re.compile(r"^\s*#\s*layer:\s*(.+?)\s*$")
+    layer = None
     with open(options.positions) as f:
         reader = csv.reader(f)
         for row in reader:
+            row = [debom(c) for c in row]
+
+            if m := layer_re.match(row[0]):
+                layer = m.group(1)
+                if layer not in layers:
+                    log.warning(
+                        f"Layer '{layer}' does not exist in font, "
+                        "all anchor redefinitions for this layer will be ignored."
+                    )
+                continue
+
             if len(row) != 4:
                 log.error("Invalid CSV data, there must exactly 4 columns.")
                 return 1
 
-            if row[0] in positions:
+            if (layer, row[0]) in positions:
                 log.warning(
                     f"Anchor '{row[0]}' is already set for another glyph, ignoring."
                 )
                 continue
 
             row = [debom(c) for c in row]
-            positions[row[0]] = (row[1], int(row[2]), int(row[3]))
+            positions[(layer, row[0])] = (row[1], int(row[2]), int(row[3]))
 
     if not process(font, positions):
         return 2
