@@ -37,10 +37,17 @@ The format of the CSV file is one anchor per line as so:
 anchorname,keyglyphname,xposition,yposition
 ```
 
+Optionally, comment lines in the format `# layer: Name` can be used to restrict subsequent anchor redefinitions to a specific layer. If no layer is specified, redefinitions apply to all layers.
+
 e.g.
 
 ```
+# layer: Regular
 _top,dieresiscomb,-200,450
+_top,acutecomb,-200,450
+# layer: Black
+_top,dieresiscomb,-150,425
+_top,acutecomb,-150,425
 ```
 
 Note: the x,y position should be the new anchor location, not the delta from the current location (which will be calculated by the script and applied to matching and corresponding anchors), and the CSV should only redefine each anchor once, on a single key glyph. The key glyph can be any mark glyph that has the named anchor.
