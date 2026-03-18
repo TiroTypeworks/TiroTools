@@ -163,97 +163,6 @@ def collectfeatures(table, tag):
     return [f.Feature for f in features if f.FeatureTag == tag]
 
 
-def run_tx(otf, options, outTag=None):
-    import cffsubr
-    import subprocess
-    import tempfile
-    import os
-    from io import BytesIO
-    from fontTools.ttLib import newTable
-
-    if "CFF " in otf:
-        tag = "CFF "
-    elif "CFF2" in otf:
-        tag = "CFF2"
-    else:
-        raise RuntimeError(f"Can’t run tx on {otf}")
-
-    if outTag is None:
-        outTag = tag
-
-    buf = BytesIO()
-    otf.save(buf)
-    input_data = buf.getvalue()
-
-    with tempfile.NamedTemporaryFile(prefix="tx-", delete=False) as in_temp:
-        in_temp.write(input_data)
-
-    with tempfile.NamedTemporaryFile(prefix="tx-", delete=False) as out_temp:
-        out_temp.write(b"")
-
-    args = [
-        f"-{outTag.rstrip().lower()}",
-        "+b",
-        *options,
-        "-o",
-        out_temp.name,
-        in_temp.name,
-    ]
-    kwargs = dict(check=True, stderr=subprocess.PIPE)
-
-    try:
-        cffsubr._run_embedded_tx(*args, **kwargs)
-    except subprocess.CalledProcessError as e:
-        raise RuntimeError(e.stderr.decode())
-    else:
-        with open(out_temp.name, "rb") as fp:
-            output_data = fp.read()
-    finally:
-        os.remove(in_temp.name)
-        os.remove(out_temp.name)
-
-    cff = newTable(outTag)
-    cff.decompile(output_data, otf)
-
-    del otf[tag]
-    otf[outTag] = cff
-
-    return otf
-
-
-def instantiateCFF2(otf, coordinates):
-    from fontTools.varLib.mutator import interpolate_cff2_metrics
-    from fontTools.misc.fixedTools import floatToFixedToFloat
-    from fontTools.varLib.models import normalizeLocation, piecewiseLinearMap
-
-    # instantiate the CFF2 table using tx, since FontTools.varLib mutator
-    # produces broken glyphs.
-    coords = ",".join(str(v) for v in coordinates.values())
-    otf = run_tx(otf, ["+V", "-U", coords], "CFF ")
-
-    # But tx doesn’t interpolate metrics, so we do it here.
-    topDict = otf["CFF "].cff.topDictIndex[0]
-
-    # Some odd rounding happens to TopDict version, so reset it.
-    topDict.version = f"{otf["head"].fontRevision}"
-
-    glyphOrder = otf.getGlyphOrder()
-    fvarAxes = otf["fvar"].axes
-    axes = {a.axisTag: (a.minValue, a.defaultValue, a.maxValue) for a in fvarAxes}
-    loc = normalizeLocation(coordinates, axes)
-    if "avar" in otf:
-        maps = otf["avar"].segments
-        loc = {k: piecewiseLinearMap(v, maps[k]) for k, v in loc.items()}
-    # Quantize to F2Dot14, to avoid surprise interpolations.
-    loc = {k: floatToFixedToFloat(v, 14) for k, v in loc.items()}
-    interpolate_cff2_metrics(otf, topDict, glyphOrder, loc)
-
-    # Set post table version to 3.0.
-    otf["post"].formatType = 3.0
-
-    return otf
-
-
 class Font:
     def __init__(self, name, conf, project):
         self.name = name
@@ -646,10 +555,7 @@ class Font:
         from fontTools.ttLib.removeOverlaps import removeOverlaps
 
         logger.info(f"Removing overlaps from {self.filename}")
-        try:
-            removeOverlaps(otf, removeHinting=False)
-        except NotImplementedError:
-            pass
+        removeOverlaps(otf, removeHinting=False)
         return otf
 
     def _instanciate(self, vf):
@@ -659,9 +565,7 @@ class Font:
         from io import BytesIO
 
         from fontTools.ttLib import TTFont
-        from fontTools.varLib.instancer import setRibbiBits
-        from fontTools.varLib.instancer.names import pruningUnusedNames, updateNameTable
-        from fontTools.varLib.mutator import instantiateVariableFont
+        from fontTools.varLib.instancer import instantiateVariableFont, OverlapMode
 
         logger.info(f"Instancing {self.filename} statics")
         instances = []
@@ -696,21 +600,19 @@ class Font:
             # name table so it does not leak into the instance PS name.
             otf["name"].removeNames(25)
 
-            try:
-                updateNameTable(otf, coordinates)
-            except ValueError:
-                pass
-
             with SaveState(self):
                 self.name = conf["name"]
                 logger.info(f"Instancing {self.filename}")
                 self.variable = False
                 self.STAT = None
-                with pruningUnusedNames(otf):
-                    if "CFF2" in otf:
-                        otf = instantiateCFF2(otf, coordinates)
-                    otf = instantiateVariableFont(otf, coordinates, inplace=True)
-                setRibbiBits(otf)
+                otf = instantiateVariableFont(
+                    otf,
+                    coordinates,
+                    inplace=True,
+                    updateFontNames=True,
+                    downgradeCFF2="CFF2" in otf,
+                    static=True,
+                )
                 self.names = conf.get("names", {})
                 drop_typo_names = (1 in self.names and 2 in self.names) or False
                 otf = self._setnames(
@@ -770,10 +672,14 @@ class Font:
             cff = font["CFF "].cff
             cff.fontNames[0] = names.get(6, cff.fontNames[0])
             topDict = cff.topDictIndex[0]
-            topDict.Copyright = names.get(0, topDict.Copyright)
-            topDict.FamilyName = names.get(1, topDict.FamilyName)
-            topDict.FullName = names.get(4, topDict.FullName)
-            topDict.Notice = names.get(7, topDict.Notice)
+            if 0 in names:
+                topDict.Copyright = names[0]
+            if 1 in names:
+                topDict.FamilyName = names[1]
+            if 4 in names:
+                topDict.FullName = names[4]
+            if 7 in names:
+                topDict.Notice = names[7]
             if 5 in names:
                 topDict.version = f"{font['head'].fontRevision}"
 

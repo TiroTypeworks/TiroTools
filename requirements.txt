@@ -18,7 +18,7 @@ cffsubr==0.4.0
     #   ufo2ft
 fontmath==0.10.0
     # via ufo2ft
-fonttools[ufo,woff]==4.61.1
+fonttools[ufo,woff]==4.62.1
     # via
     #   -r requirements.in
     #   axisregistry
@@ -36,15 +36,15 @@ pyclipper==1.4.0
     # via booleanoperations
 pyyaml==6.0.3
     # via -r requirements.in
-skia-pathops==0.9.1
+skia-pathops==0.9.2
     # via -r requirements.in
 ttfautohint-py==0.6.0
     # via -r requirements.in
-ufo2ft==3.7.0
+ufo2ft==3.7.1
     # via -r requirements.in
 ufolib2==0.18.1
     # via -r requirements.in
 uharfbuzz==0.53.3
     # via -r requirements.in
-zopfli==0.4.0
+zopfli==0.4.1
     # via fonttools
