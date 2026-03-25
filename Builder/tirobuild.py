@@ -229,7 +229,18 @@ def instantiateCFF2(otf, coordinates):
     # instantiate the CFF2 table using tx, since FontTools.varLib mutator
     # produces broken glyphs.
     coords = ",".join(str(v) for v in coordinates.values())
-    otf = run_tx(otf, ["+V", "-U", coords], "CFF ")
+    otf = run_tx(
+        otf,
+        [
+            "+V",  # remove overlaps
+            "-E",  # don't optimize for embedding
+            "-F",  # don't optimize Family zones
+            "-O",  # don't optimize for ROM
+            "-U",  # user design vector (to instantiate an MM or CFF2 font)
+            coords,
+        ],
+        "CFF ",
+    )
 
     # But tx doesn’t interpolate metrics, so we do it here.
     topDict = otf["CFF "].cff.topDictIndex[0]
