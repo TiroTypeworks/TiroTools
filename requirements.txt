@@ -10,7 +10,7 @@ axisregistry==0.4.16
     # via -r requirements.in
 booleanoperations==0.10.0
     # via ufo2ft
-brotli==1.2.0
+brotli==1.2.1
     # via fonttools
 cffsubr==0.4.0
     # via
